@@ -21,20 +21,20 @@
 #####Input some data from .csv
 
 raw <-read.csv(file="export.txt")
+raw$SUCCESS_B <- NULL
+raw$IDS_BOOK_PCT <- NULL
 
 #run factor analyis for 5 factors
 
-factor_data <- factanal((raw[,2:30]), factors=10, data=raw,scores='regression', rotation="varimax")
+factor_data <- factanal((raw[,2:29]), factors=10, data=raw,scores='regression', rotation="varimax")
 factor_loadings <- factor_data$loadings
 
 #
 library(randomForest)
 rf1 <- randomForest(as.factor(REGISTRATION_B) ~ ., data=raw[,-1], ntree=100, importance=TRUE)
 importance <- (data.frame(round(importance(rf1), 2)))
-
 plot(rf1)
 varImpPlot(rf1)
-
 
 library(rpart)
 tree1 <- rpart(as.factor(REGISTRATION_B) ~ ., data=raw[,-1],method='class', control=rpart.control(minsplit=500))
@@ -51,18 +51,19 @@ pred <- predict(fit)
 perf <- performance(pred,"tpr","fpr")
 plot(perf)
 
-
 library(Design)
 llogit = lrm(as.factor(REGISTRATION_B) ~ ., data=raw[,-1])
+validate(llogit, B=100, bw=TRUE, rule="p", sls=.1, type="individual")
 
-ols <- lm(REGISTRATION_B ~ ., data=raw[,-1])
+#run OLS
+ols <- lm(REGISTRATION_B ~ BUS_PERCENT + STAY_C + LEADTIME + CRO_BOOK_PCT + POINTS_COLLECTOR + WEB_BOOK_PCT + MIDSCALE_PCT + NIGHTSPERSTAY, data=raw[,-1])
 
 library(relaimpo)
-a <- calc.relimp(ols,type = c("lmg", "last", "first", "betasq", "pratt"), rela = TRUE )
+a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
 plot(a)
 
-
-
+library(nnet)
+nnet1 = nnet(REGISTRATION_B ~ ., data=raw[,-1], size=14, maxit=200)
 
 
 
