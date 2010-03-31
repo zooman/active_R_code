@@ -24,6 +24,7 @@ raw <-read.csv(file="export.txt")
 raw$SUCCESS_B <- NULL
 raw$IDS_BOOK_PCT <- NULL
 
+library(reshape)
 scaleraw <- rescaler.data.frame(raw[,-1],type="sd")
 
 #run factor analyis for 5 factors
@@ -67,31 +68,30 @@ plot(a)
 library(nnet)
 nnet1 = nnet(REGISTRATION_B ~ ., data=raw[,-1], size=14, maxit=200)
 
-kout = kmeans(scaleraw[-1], 10, iter.max=100)
-plot(raw[,-1], col = kout$cluster)
-
+#run kmeans
+kout = kmeans(scaleraw, 12, iter.max=500)
+#plot(raw[,-1], col = kout$cluster)
 center <- data.frame(kout$centers)
 tcenter <- data.frame(t(center))
 
-labels=rownames(tcenter)
-par(mfrow=c(1,3))
 #run bar plots
+par(mfrow=c(1,3))
+#margin reduce bottom
+par(mar=c(3,4.1,4.1, 2.1))
 
-for(i in 1:3) {
-
-vplot <- paste("tcenter$X",i,sep="")	
-barplot(tcenter$X1, names.arg=labels, las=2,pos=0, col=ifelse(tcenter$X1 >= .5, 'green', ifelse(tcenter$X1 <= -.5, 'red', 'grey')), cex.names = .6, horiz=TRUE, main = "Cluster 1 Summary", sub = paste("N=",kout$size[1]))
+par(ask=TRUE)
+labels=rownames(tcenter)
+for(i in 1:10) {
+vplot <- paste("X",i,sep="")
+barplot(tcenter[,vplot], names.arg=labels,las=2,pos=0,col=ifelse(tcenter[,vplot] >= .5, 'green', ifelse(tcenter[,vplot] <= -.5, 'red', 'grey')), cex.names = .6, horiz=TRUE, main = paste("Cluster ",i," Summary"))
+mtext(paste("N=",kout$size[i]),3)
 lines(-.5, 35, type='h', col='red', lty=2)
 lines(.5, 35, type='h', col='red', lty=2)
-
 }
 
-
-
-
-
-
-
+a <- barplot(tcenter[,vplot], las=2,col=ifelse(tcenter[,vplot] >= .5, 'green', ifelse(tcenter[,vplot] <= -.5, 'red', 'grey')), cex.names = .6, horiz=TRUE, main = paste("Cluster ",i," Summary"), sub = paste("N=",kout$size[i]))
+#text(a,10,labels=labels, cex=.6, col="blue", pos=1)
+mtext(text=labels, side=2, line=-3, at=a, cex=.6, col="blue", las=2)
 
 
 
