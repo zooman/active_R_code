@@ -30,7 +30,7 @@ hist(raw)
 
 cor(raw)
 # corr plots
-pairs(raw[,2:7],panel=panel.smooth)
+pairs(raw[,2:17],panel=panel.smooth)
 
 plot(raw$BUS_PERCENT,raw$GDS_BOOK_PCT, main="Scatterplot Example", col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 abline(lm(raw$BUS_PERCENT~raw$GDS_BOOK_PCT), col="red") # regression line (y~x)
@@ -46,13 +46,10 @@ corrgram(raw,cex.labels=.7,order=TRUE,lower.panel=panel.pie,upper.panel=panel.sh
 #zreg <- rq(raw$BUS_PERCENT~raw$GDS_BOOK_PCT, .5)
 #plot(zreg)
 
-library(reshape)
-scaleraw <- rescaler.data.frame(raw[,-1],type="sd")
-
 #run factor analyis for 5 factors
-
 factor_data <- factanal((raw[,2:29]), factors=10, data=raw,scores='regression', rotation="varimax")
 factor_loadings <- factor_data$loadings
+factor_loadings
 
 #run prediction model suite
 library(randomForest)
@@ -73,9 +70,8 @@ plot(fit, main="Loyalty Registration Prediction", type="simple")
 plot(fit, main="Loyalty Registration Prediction", terminal_panel = node_barplot)
 plot(fit, main="Loyalty Registration Prediction", inner_panel = node_barplot,terminal_panel = node_barplot)
 
-
 library(Design)
-llogit = lrm(as.factor(REGISTRATION_B) ~ ., data=raw[,-1])
+llogit = lrm(as.factor(REGISTRATION_B) ~ ., data=raw[,-1], x=TRUE, y=TRUE)
 validate(llogit, B=100, bw=TRUE, rule="p", sls=.1, type="individual")
 
 library(nnet)
@@ -85,30 +81,32 @@ nnet1 = nnet(REGISTRATION_B ~ ., data=raw[,-1], size=14, maxit=200)
 ols <- lm(REGISTRATION_B ~ BUS_PERCENT + STAY_C + LEADTIME + CRO_BOOK_PCT + POINTS_COLLECTOR + WEB_BOOK_PCT + MIDSCALE_PCT + NIGHTSPERSTAY, data=raw[,-1])
 
 #run ROC curves
-library(ROCR)
-pred <- predict(fit)
-perf <- performance(pred,"tpr","fpr")
-plot(perf)
+#library(ROCR)
+#pred <- predict(fit)
+#perf <- performance(pred,"tpr","fpr")
+#plot(perf)
 
 #run variance decomposition
 library(relaimpo)
-a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
+a <- calc.relimp(ols,type = c("lmg","last", "first", "betasq", "pratt"), rela = TRUE)
+#a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
 plot(a)
 
 #run kmeans
+library(reshape)
+scaleraw <- rescaler.data.frame(raw[,-1],type="sd")
 kout = kmeans(scaleraw, 12, iter.max=500)
 #plot(raw[,-1], col = kout$cluster)
 center <- data.frame(kout$centers)
 tcenter <- data.frame(t(center))
 
-par(mar=c(5,4.1,4.1,2.1))
-nclus <- barplot(kout$size,main="Cluster Size",sub="Cluster", names.arg=1:12, col="blue")
-text(nclus, kout$size + .03*max(kout$size),kout$size, text=as.character(kout$size), cex=.75)
-
-par(oma=c(1.5,0,0,0)) # 1.5 line2 at the bottom
-GenericFigure("Plot Area", 3,2)
-shortname <- "Figure1" # or maybe a filename
-mtext(paste(shortname, " ", format(Sys.time(), "%Y-%m-%d %H:%M")),cex=0.75, line=0, side=SOUTH<-1, adj=0, outer=TRUE)
+#par(mar=c(5,4.1,4.1,2.1))
+nclus <- barplot(kout$size,main="Cluster Size",sub="Cluster", names.arg=1:12, col="blue", ylim=c(0,max(kout$size+kout$size*.05)))
+text(nclus, kout$size + .03*max(kout$size),text=kout$size,kout$size, cex=.75)
+#par(oma=c(1.5,0,0,0)) # 1.5 line2 at the bottom
+#GenericFigure("Plot Area", 3,2)
+#shortname <- "Figure1" # or maybe a filename
+#mtext(paste(shortname, " ", format(Sys.time(), "%Y-%m-%d %H:%M")),cex=0.75, line=0, side=SOUTH<-1, adj=0, outer=TRUE)
 
 #run bar plots
 par(mfrow=c(1,3))
@@ -125,8 +123,15 @@ lines(-.5, 35, type='h', col='red', lty=2)
 lines(.5, 35, type='h', col='red', lty=2)
 }
 
+#run segmentation
+hvq_k <- hvq(scaleraw,nclust=100,depth=1, quant.err = .5)
+hvqdata_subset <- hvq_k$ztab[,1:5]
+hvqdata_subset
+hvqdata <- hvq_k$ztab
+hvqdata <- subset(hvqdata, hvqdata$n>100)
 
-x <- 1:3
-bmp <- barplot(x, ylim = c(0, 1.1*max(x)))
-text(bmp, x + .03*max(x), x)
+#visualize segmentation
+hvqgraph33(hvqdata, zcols = 6:33, pal = 6, asp=NA, numrec=T, bwtess=T, axes=T)
 
+#run color
+hvqgraph33(hvqdata, zcols = 6:33, pal = 6, asp=NA, numrec=T, bwtess=F, axes=T,magnif=hvqdata$n)
