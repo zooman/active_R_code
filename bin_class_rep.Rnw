@@ -1,0 +1,303 @@
+\documentclass{article}
+
+% Load Packages (All of these need to be installed on the computer you are using)
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{fancyvrb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{lastpage}
+\usepackage{setspace}
+\usepackage{relsize}
+\usepackage{rotating}
+
+\definecolor{mycol}{rgb}{0.8,0.85,1}
+\definecolor{mygrey}{gray}{0.75}
+\pagecolor{white}
+
+\pagestyle{fancy}
+
+% Modify Basic Page layout
+\setlength\hoffset{-0.5in}
+\setlength\voffset{-0.75in}
+\setlength\oddsidemargin{0in}
+\setlength\topmargin{0in}
+\setlength\headheight{0.5in}
+\setlength\headsep{0.25in}
+\setlength\textheight{9in}
+\setlength\textwidth{7.5in}
+\setlength\marginparsep{0in}
+\setlength\marginparwidth{0in}
+\setlength\footskip{.5in}
+
+
+% Modify Headers and Footers
+\fancyhf{}
+\fancyhfoffset{.25in}
+\lhead{\rightmark}
+\chead{}
+\rhead{Binary Classification Report}
+\lfoot{\Sexpr{print(version$version.string)} \\Platform: \Sexpr{print(version$platform)}}
+\cfoot{}
+\rfoot{\today \\Page: \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\sectionmark}[1]{\markright{#1}{}}
+
+<<setup, echo=false>>= 
+options(width=80)
+@
+
+%%%%%%%%%%%%%%%%%%%%%%   Start Document   %%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{titlepage}
+\null
+  \thispagestyle{empty}
+  \vskip .5in
+  \begin{center}\leavevmode
+    \vskip 1.75in
+    \normalfont
+    {\LARGE Propensity Model Binary Classification Report}
+    \vskip .5in
+    {\Large Zubin Dowlaty}
+    \vskip .25in
+    {\Large \today}
+	\vskip 3in
+    \includegraphics[width=1in]{sams.png}
+	\vskip .15in
+	{\large Produced by Mu Sigma}
+  \end{center}
+  \vfill
+  \null
+  \cleardoublepage
+\end{titlepage}
+
+\section{EDA}
+
+Below are the descriptive statistics for the data, as well as histograms.
+
+\subsection{Descriptive Statistics}
+
+<<EDA_stats, results=tex, echo=FALSE>>=
+xtable(t(sapply(raw[-c(1)],function(x) c(n=length(x),missing=sum(is.na(x)),Unique=length(unique(x)),Mean=mean(x),quantile(x,c(.05,.1,.25,.5,.75,.9,.95))))),
+		digits=3,
+	    display=c("s",rep("d",3),rep("g",8)),
+		align="r|rrrrrrrrrrr")
+@
+
+\clearpage
+
+\subsection{Variable Plots}
+
+\begin{figure}
+\begin{center}
+<<EDA_plots,echo=FALSE, fig=TRUE>>=
+par(mfrow=c(10,3),mar=c(0,1,2,1), oma=c(0,0,0,0))
+for(i in 1:ncol(raw)){hist(raw[,i],main = names(raw)[i], col="blue",cex.main=.9,axes=FALSE)}
+@
+\end{center}
+\caption{Distribution of Variables}
+\end{figure}
+
+\clearpage
+
+\section{Model Fits}
+<<split,echo=FALSE>>=
+train <- 1:nrow(raw) %in% sample(1:nrow(raw),size=ceil(nrow(raw)*.8))
+@
+
+Here the data is split into a training and validation set (80\%,20\%).  Various models are then fit to the training set.
+
+\subsection{Random Forest}
+
+<<rforest1>>=
+#run forest
+rf1 <- randomForest(factor(REGISTRATION_B) ~ ., data=raw[,-1], 
+						ntree=100, importance=TRUE, subset=train)
+imp1 <- importance(rf1)[,3]
+@
+
+<<rforest_out,echo=FALSE>>=
+print(rf1)
+@
+
+\begin{figure}
+\begin{center}
+<<rforest2,echo=FALSE, fig=TRUE>>=
+par(old.par)
+plot(rf1,main="")
+legend(x="topright",legend=c("Out of Bag Misclassification","0 Misclassification","1 Misclassification"),lty=1:3,col=1:3,bg="white")
+@
+\end{center}
+\caption{Random Forest Misclassification}
+\end{figure}
+
+\clearpage
+
+\begin{figure}
+\begin{center}
+<<rforest3,echo=FALSE, fig=TRUE>>=
+par(old.par)
+par(mar=c(5, 7, 2, .75) + 0.1)
+bp <- barplot(sort(imp1),horiz=TRUE,las=1,cex.names=.6, cex.axis=.6, , cex.lab=.9, xlab="Mean Decrease in Accuracy", col="blue", border=NA, names.arg="", main="")
+mtext(side = 2, at = bp, text = names(sort(imp1)), las=1, cex=.6)
+@
+\end{center}
+\caption{Variable Importance}
+\end{figure}
+
+\clearpage
+
+\subsection{Decision Tree}
+
+<<condtree1,include=FALSE>>=
+#run tree
+fit <- ctree(factor(REGISTRATION_B) ~ ., data=raw[,-1], subset=train)
+print(fit)
+@
+
+<<condtree2, include=FALSE, echo=FALSE>>=
+pdf(file="bin_class_rep-ctree.pdf", width=33,height=17.5)
+par(old.par)
+plot(fit)
+invisible(dev.off())
+@
+
+\begin{sidewaysfigure}
+  \begin{center}
+  \includegraphics[width=\textheight]{bin_class_rep-ctree.pdf}
+  \end{center}
+  \caption{Classification Prediction Tree}
+\end{sidewaysfigure}
+
+\clearpage
+
+\subsection{Logistic Regression}
+<<logistic1,results=tex>>=
+#run logistic
+llogit <- glm(factor(REGISTRATION_B) ~ ., data=raw[,-1],  subset=train, family=binomial)
+xtable(summary(llogit), caption="Logistic Regression Estimates", align="r|rrrr")
+@
+
+
+\subsection{Neural Net}
+<<nnet1>>=
+#run nnet
+nnet1 <- nnet(factor(REGISTRATION_B) ~ ., data=raw[,-1], size=4,   subset=train)
+summary(nnet1)
+@
+
+\section{Training Summary}
+
+Below are the model summaries for the training set. (N = \Sexpr{sum(train)})
+
+<<train_sum,results=tex, echo=FALSE>>=
+rf.pred <- predict(rf1,newdata=raw[train,],type="prob")[,2]
+logit.pred <- predict(llogit,newdata=raw[train,],type="response")
+condtree.pred <- do.call("rbind",treeresponse(fit,newdata=raw[train,]))[,2]
+nnet.pred <- predict(nnet1,newdata=raw[train,],type="raw")
+
+rf_cut <- opt.cut(rf.pred)
+logit_cut <- opt.cut(logit.pred)
+condtree_cut <- opt.cut(condtree.pred)
+nnet_cut <- opt.cut(nnet.pred)
+
+rf_train <- table(predicted=as.numeric(rf.pred>=rf_cut),actual=factor(raw[train,"REGISTRATION_B"]))
+logit_train <- table(predicted=as.numeric(logit.pred>=logit_cut),actual=factor(raw[train,"REGISTRATION_B"]))
+condtree_train <- table(predicted=as.numeric(condtree.pred>=condtree_cut),actual=factor(raw[train,"REGISTRATION_B"]))
+nnet_train <- table(predicted=as.numeric(nnet.pred>=nnet_cut),actual=factor(raw[train,"REGISTRATION_B"]))
+
+xtable(rf_train, caption="Training Summary: Random Forest", align="r|rr")
+xtable(logit_train, caption="Training Summary: Logistic Regression", align="r|rr")
+xtable(condtree_train, caption="Training Summary: Conditional Tree", align="r|rr")
+xtable(nnet_train, caption="Training Summary: Neural Net", align="r|rr")
+
+xtable(t(sapply(list("Random Forest"=rf_train,
+						"Logistic Regression"=logit_train,
+						"Conditional Tree"=condtree_train,
+						"Neural Net"=nnet_train),acc.rep)),
+		caption="Training Summary", align="r|rrrr")
+@
+
+\clearpage
+
+\begin{figure}
+\begin{center}
+<<roc_train, echo=FALSE, fig=TRUE>>=
+plot(performance(prediction(rf.pred,raw[train,"REGISTRATION_B"]),"tpr","fpr"),col="red")
+plot(performance(prediction(logit.pred,raw[train,"REGISTRATION_B"]),"tpr","fpr"),col="blue",add=TRUE)
+plot(performance(prediction(condtree.pred,raw[train,"REGISTRATION_B"]),"tpr","fpr"),col="green",add=TRUE)
+plot(performance(prediction(nnet.pred,raw[train,"REGISTRATION_B"]),"tpr","fpr"),col="purple",add=TRUE)
+auc1 <- performance(prediction(rf.pred,raw[train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc2 <- performance(prediction(logit.pred,raw[train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc3 <- performance(prediction(condtree.pred,raw[train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc4 <- performance(prediction(nnet.pred,raw[train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+legend("bottomright",legend=c(paste("Random Forest         (AUC=",formatC(auc1,digits=4,format="f"),")",sep=""),
+							 paste("Logistic Regression  (AUC=",formatC(auc2,digits=4,format="f"),")",sep=""),
+							 paste("Conditional Tree        (AUC=",formatC(auc3,digits=4,format="f"),")",sep=""),
+							 paste("Neural Net                 (AUC=",formatC(auc4,digits=4,format="f"),")",sep="")),
+		col=c("red","blue","green","purple"), lty=1)
+
+@
+\end{center}
+\caption{ROC Training Performance}
+\end{figure}
+
+\clearpage
+
+\section{Validation Summary}
+
+Below are the model summaries for the validation set. (N = \Sexpr{sum(!train)})
+
+<<test_sum,results=tex, echo=FALSE>>=
+rf.pred2 <- predict(rf1,newdata=raw[!train,],type="prob")[,2]
+logit.pred2 <- predict(llogit,newdata=raw[!train,],type="response")
+condtree.pred2 <- do.call("rbind",treeresponse(fit,newdata=raw[!train,]))[,2]
+nnet.pred2 <- predict(nnet1,newdata=raw[!train,],type="raw")
+
+rf_test <- table(predicted=as.numeric(rf.pred2>=rf_cut),actual=factor(raw[!train,"REGISTRATION_B"]))
+logit_test <- table(predicted=as.numeric(logit.pred2>=logit_cut),actual=factor(raw[!train,"REGISTRATION_B"]))
+condtree_test <- table(predicted=as.numeric(condtree.pred2>=condtree_cut),actual=factor(raw[!train,"REGISTRATION_B"]))
+nnet_test <- table(predicted=as.numeric(nnet.pred2>=nnet_cut),actual=factor(raw[!train,"REGISTRATION_B"]))
+
+xtable(rf_test, caption="Validation Summary: Random Forest", align="r|rr")
+xtable(logit_test, caption="Validation Summary: Logistic Regression", align="r|rr")
+xtable(condtree_test, caption="Validation Summary: Conditional Tree", align="r|rr")
+xtable(nnet_test, caption="Validation Summary: Neural Net", align="r|rr")
+
+xtable(t(sapply(list("Random Forest"=rf_test,
+						"Logistic Reression"=logit_test,
+						"Conditional Tree"=condtree_test,
+						"Neural Net"=nnet_test),acc.rep)),
+		caption="Validation Summary", align="r|rrrr")
+@
+
+\clearpage
+
+\begin{figure}
+\begin{center}
+<<roc_test, echo=FALSE, fig=TRUE>>=
+plot(performance(prediction(rf.pred2,raw[!train,"REGISTRATION_B"]),"tpr","fpr"),col="red")
+plot(performance(prediction(logit.pred2,raw[!train,"REGISTRATION_B"]),"tpr","fpr"),col="blue",add=TRUE)
+plot(performance(prediction(condtree.pred2,raw[!train,"REGISTRATION_B"]),"tpr","fpr"),col="green",add=TRUE)
+plot(performance(prediction(nnet.pred2,raw[!train,"REGISTRATION_B"]),"tpr","fpr"),col="purple",add=TRUE)
+auc1 <- performance(prediction(rf.pred2,raw[!train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc2 <- performance(prediction(logit.pred2,raw[!train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc3 <- performance(prediction(condtree.pred2,raw[!train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+auc4 <- performance(prediction(nnet.pred2,raw[!train,"REGISTRATION_B"]),"auc")@y.values[[1]]
+legend("bottomright",legend=c(paste("Random Forest         (AUC=",formatC(auc1,digits=4,format="f"),")",sep=""),
+							 paste("Logistic Regression  (AUC=",formatC(auc2,digits=4,format="f"),")",sep=""),
+							 paste("Conditional Tree        (AUC=",formatC(auc3,digits=4,format="f"),")",sep=""),
+							 paste("Neural Net                 (AUC=",formatC(auc4,digits=4,format="f"),")",sep="")),
+		col=c("red","blue","green","purple"), lty=1)
+
+@
+\end{center}
+\caption{ROC Validation Performance}
+\end{figure}
+
+\clearpage
+
+\end{document}
