@@ -6,16 +6,17 @@
 
 #require(RJDBC, quietly=TRUE)
 #require(rJava, quietly=TRUE)
-
-# makes connection to database and stores information in con variable 
-
+#
+## makes connection to database and stores information in con variable 
+#
 #drv<-JDBC("org.postgresql.Driver","c:/jdbc/postgresql-8.4-701.jdbc3.jar"); 
-#conn<-dbConnect(drv,"jdbc:postgresql://122.181.139.115:5432","postgres","postgres");
-
-#submits query and returns data frame into output_data
-
-#sqlstring <- paste("select * from stockdata",sep="")
-#output_data <-dbGetQuery(conn,sqlstring)
+##conn<-dbConnect(drv,"jdbc:postgresql://122.181.139.115:5432","postgres","postgres");
+#conn<-dbConnect(drv,"jdbc:postgresql://localhost","postgres","coolz");
+#
+##submits query and returns data frame into output_data
+#
+#sqlstring <- paste("select * from loyalty",sep="")
+#raw <-dbGetQuery(conn,sqlstring)
 
 
 #####Input some data from .csv
