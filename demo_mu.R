@@ -1,11 +1,13 @@
 # Author: zubin
 ###############################################################################
 
-#discuss IDE, CRAN, Libraries, ls 
+
+#discuss IDE, CRAN, Libraries, ls, statmethods.net, rseek, r-blogger
 #use R data sets 
 data(iris)
 # show libraries, dataframe, str, head, summary, help?
 hist(iris)
+library(Hmisc)
 
 #show rename and delete, new fields
 a <- iris
@@ -18,7 +20,6 @@ names(a)[names(a)=="Sepal.Width"] <- "Sepal.Zoo"
 b <- subset(a,Sepal.Width > 3)
 
 summary(iris)
-library(Hmisc)
 describe(iris)
 
 cor(iris)
@@ -52,13 +53,22 @@ wireframe(volcano, shade = TRUE,aspect = c(61/87, 0.4), light.source = c(10,0,10
 
 #survey data ######################
 # load via SQL
+##if you want to use R to hit a database, the RJDBC package is nice
+require(RJDBC, quietly=TRUE)
+require(rJava, quietly=TRUE)
+# makes connection to database and stores information in con variable 
+drv<-JDBC("org.postgresql.Driver","c:/jdbc/postgresql-8.4-701.jdbc3.jar"); 
+conn<-dbConnect(drv,"jdbc:postgresql://localhost","postgres","postgres");
+#submits query and returns data frame into output_data
+sqlstring <- paste("select * from loyalty",sep="")
+raw <-dbGetQuery(conn,sqlstring)
+
 
 # load via csv 
-
-
-gsts_raw <-read.csv(file="gsts_avgs.txt")
+gsts_raw <-read.csv(file="gsts_avgs.csv")
 head(gsts_raw)
 str(gsts_raw)
+
 
 boxplot(gsts_raw[-1],main="Quality Scores", col="blue", cex.axis=.3)
 
@@ -91,6 +101,14 @@ gstsCut <- data.frame(gsts,qsat)
 # explore with conditioning plots
 library(lattice)
 xyplot(sat ~ physical | qsat, data=gstsCut,type=c('p', 'smooth'), col="red")
+
+#run cluster analysis
+clust <- hclust(dist(gsts[1:4]),method="ward")
+plot(clust,labels=FALSE, hang=-1)
+# draw dendogram with red borders around the 5 clusters
+rect.hclust(clust, k=5, border="red")
+groups <- cutree(clust, k=5) # cut tree into 5 clusters
+
 
 #create a new variable - random uniform
 gsts <- transform(gsts,random=runif(nrow(gsts)))
@@ -161,6 +179,7 @@ gstsValid <- data.frame(gstsValid,ptree)
 
 #calculate MAD and plot fits of validation set for OLS
 par(mfrow=c(3,2))
+
 with (gstsValid,plot(fit,sat))
 with (gstsValid,lines(lowess(fit,sat),col='red'))
 with (gstsValid,lines(fit,lwr, lty=1, lwd=1, col='grey'))
