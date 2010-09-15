@@ -1,4 +1,3 @@
-# 
 # Author: zubin
 ###############################################################################
 
@@ -10,7 +9,9 @@ options(scipen=3)
 #hist(hotelv4)
 
 #linear regression
+#SAS PROC REG
 hotel_raw <-read.csv(file="hi.csv")
+
 hotelv1 <- hotel_raw[,-1]
 
 lm_model <- lm (Occupancy ~ ., data=hotelv1)
@@ -38,11 +39,15 @@ hotelv4 <- transform(hotelv4,random=runif(nrow(hotelv4)))
 hotelv4Train <- subset(hotelv4,random<=.8)
 hotelv4Valid <- subset(hotelv4,random>.8)
 
+################################################
+#start regression methods
+
 #fit linear regression
 lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
 plot(lm_model)
 
 #fit robust regression
+#SAS RobustReg
 library(MASS)
 rlm1 <- rlm(Occupancy ~., data=hotelv4Train)
 summary(rlm1)
@@ -52,6 +57,7 @@ library(quantreg)
 qm1 <- rq(Occupancy ~.,tau=.5, data=hotelv4Train)
 
 #fit PLS
+# SAS PROC PLS
 library(pls)
 plsm1 <- mvr(Occupancy ~., 20,data=hotelv4Train, validation="CV")
 coef(plsm1)
@@ -71,7 +77,7 @@ library(party)
 ptree1 <- ctree(Occupancy ~ ., controls=ctree_control(minbucket=30), data=hotelv4Train)
 plot(ptree1, main="Hotel Tree", type="simple")
 
-#run tree
+#run tree CART algorithm
 library(rpart)
 tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
 printcp(tree1)
@@ -82,13 +88,44 @@ text(tree1,digits=3, cex=.7)
 library(nnet)
 nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train, rang=.1,size=10,maxit=1000,linout=T)
 
+#support vector machine
+library(e1071)
+svm1 <- svm(Occupancy ~., data=hotelv4Train, type='eps')
+
 #run GAM
+#SAS PROC GAM
 library(mgcv)
-gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(PercentGroupNights)+ s(Compet_AvgDailyRate) + LOC_DESC, data=hotelv4Train)
+gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(PercentGroupNights)+ s(Compet_AvgDailyRate) + s(slf_nts_totsty)+ LOC_DESC, data=hotelv4Train)
 summary(gam1)
 plot(gam1)
 vis.gam(gam1)
 gam.check(gam1)
+
+
+
+
+#variable importance and classification
+#SAS PROC GLMSELECT
+library(caret)
+ctrl <- rfeControl(functions = rfFuncs, method = "cv",workers=2,verbose = FALSE,returnResamp = "final")
+y <- hotelv4Train$Occupancy
+x <- subset(hotelv4Train,select = -c(Occupancy))
+subsets <- c(1:19)
+lmProfile <- rfe(x, y,sizes = subsets,rfeControl = ctrl)
+lmProfile
+plot(lmProfile, metric = "Rsquared",type="b")
+predictors(lmProfile)
+
+
+#R squared decomposition
+#run variance decomposition
+lm_model <- lm (Occupancy ~ Compet_Occupancy + PercentGroupNights + LOC_DESC + AvgDailyRate + PercentBusiness + slf_nts_totsty, data=hotelv4Train)
+library(relaimpo)
+a <- calc.relimp(lm_model,type = c("lmg","last", "first"), rela = TRUE)
+#a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
+plot(a)
+
+
 
 #predict validation data set
 #predict over validation set and append variables to dataframe
@@ -121,9 +158,12 @@ hValid <- data.frame(hValid,qreg)
 prlm <- predict(rlm1,newdata=hotelv4Valid)
 hValid <- data.frame(hValid,prlm)
 
+psvm1 <- predict(svm1,newdata=hotelv4Valid)
+hValid <- data.frame(hValid,psvm1)
+
 
 #calculate MAD and plot fits of validation set for OLS
-par(mfrow=c(3,3))
+par(mfrow=c(2,5))
 
 with (hotelv4Valid,plot(hValid$fit,Occupancy))
 with (hotelv4Valid,lines(lowess(hValid$fit,Occupancy),col='red'))
@@ -169,12 +209,20 @@ with (hotelv4Valid,plot(hValid$qreg,Occupancy))
 with (hotelv4Valid,lines(lowess(hValid$qreg,Occupancy),col='red'))
 mad <- cbind(mad,"QREG" = mean(abs(hotelv4Valid$Occupancy-hValid$qreg)))
 
+#calculate MAD and plot fits of validation set for SVM
+with (hotelv4Valid,plot(hValid$psvm1,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$psvm1,Occupancy),col='red'))
+mad <- cbind(mad,"SVN" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
+
 #plot MAPE
 order <- order(colMeans(mad),decreasing = FALSE)
 sorted <- mad[1,order]
 barplot((as.matrix(sorted)),col="blue")
 title("Summary of MAD")
 title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
+
+
+#PROC MIXED or LME Mixed Models for Panel Data
 
 
 
