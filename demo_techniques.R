@@ -45,7 +45,7 @@ hotelv4Valid <- subset(hotelv4,random>.8)
 #fit linear regression
 #SAS PROC REG
 lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
-plot(lm_model)
+#plot(lm_model)
 
 #fit robust regression
 #SAS RobustReg
@@ -220,7 +220,7 @@ mad <- cbind(mad,"SVN" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
 #plot MAPE
 order <- order(colMeans(mad),decreasing = FALSE)
 sorted <- mad[1,order]
-barplot((as.matrix(sorted)),col="blue")
+#barplot((as.matrix(sorted)),col="blue")
 title("Summary of MAD")
 title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
 
