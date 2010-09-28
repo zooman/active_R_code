@@ -39,7 +39,8 @@ hotelv4 <- transform(hotelv4,random=runif(nrow(hotelv4)))
 hotelv4Train <- subset(hotelv4,random<=.8)
 hotelv4Valid <- subset(hotelv4,random>.8)
 
-################################################
+#####################################################################################
+#####################################################################################
 #start regression methods
 
 #fit linear regression
@@ -48,18 +49,18 @@ lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
 #plot(lm_model)
 
 #fit robust regression
-#SAS RobustReg
+#SAS RobustReg, useful for outliers
 library(MASS)
 rlm1 <- rlm(Occupancy ~., maxit=100,data=hotelv4Train)
 summary(rlm1)
 
 #fit quantile regression
-#SAS QUANTREG
+#SAS QUANTREG, useful for outliers
 library(quantreg)
 qm1 <- rq(Occupancy ~.,tau=.5, data=hotelv4Train)
 
 #fit PLS
-# SAS PROC PLS
+# SAS PROC PLS, useful for collinearity
 hotelv4Train <- subset(hotelv4Train,select = -c(random ))
 library(pls)
 plsm1 <- mvr(Occupancy ~., 20,data=hotelv4Train, validation="CV")
@@ -69,13 +70,13 @@ coef(plsm1)
 #plot(plsm1, "loadings", comps = 1:3,legendpos = "topleft")
 summary(plsm1)
 
-#random forest
+#random forest, useful for prediction and variable importance
 library(randomForest)
 rf1 <- randomForest(Occupancy ~ ., data=hotelv4Train, ntree=50, importance=TRUE)
 #plot(rf1)
 #varImpPlot(rf1)
 
-#run regression tree
+#run regression tree, prediction and importance
 library(party)
 ptree1 <- ctree(Occupancy ~ ., controls=ctree_control(minbucket=30), data=hotelv4Train)
 #plot(ptree1, main="Hotel Tree", type="simple")
@@ -87,16 +88,17 @@ tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
 #plot(tree1, uniform=FALSE)
 #text(tree1,digits=3, cex=.7)
 
-#neural net
-library(nnet)
-nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=8,maxit=1000,linout=T)
 
-#support vector machine
+#neural net, prediction
+library(nnet)
+nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=12,maxit=1000,linout=T)
+
+#support vector machine, prediction
 library(e1071)
 svm1 <- svm(Occupancy ~., data=hotelv4Train, type='eps')
 
 #run GAM
-#SAS PROC GAM
+#SAS PROC GAM, functional form / non-linearities
 library(mgcv)
 gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(PercentGroupNights)+ s(Compet_AvgDailyRate) + s(slf_nts_totsty)+ LOC_DESC, data=hotelv4Train)
 summary(gam1)
@@ -218,11 +220,11 @@ with (hotelv4Valid,lines(lowess(hValid$psvm1,Occupancy),col='red'))
 mad <- cbind(mad,"SVN" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
 
 #plot MAPE
-order <- order(colMeans(mad),decreasing = FALSE)
-sorted <- mad[1,order]
+#order <- order(colMeans(mad),decreasing = FALSE)
+#sorted <- mad[1,order]
 #barplot((as.matrix(sorted)),col="blue")
-title("Summary of MAD")
-title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
+#title("Summary of MAD")
+#title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
 
 
 #LME Mixed Models for Panel Data
