@@ -91,7 +91,7 @@ tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
 
 #neural net, prediction
 library(nnet)
-nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=12,maxit=1000,linout=T)
+nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=7,maxit=2000,decay = .001,linout=F)
 
 #support vector machine, prediction
 library(e1071)
@@ -100,7 +100,7 @@ svm1 <- svm(Occupancy ~., data=hotelv4Train, type='eps')
 #run GAM
 #SAS PROC GAM, functional form / non-linearities
 library(mgcv)
-gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(PercentGroupNights)+ s(Compet_AvgDailyRate) + s(slf_nts_totsty)+ LOC_DESC, data=hotelv4Train)
+gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(AvgDailyRate,Compet_AvgDailyRate) + s(PercentGovtNights) + slf_nts_totsty + RMS_AVAIL_QTY + LOC_DESC + PercentGroupNights, data=hotelv4Train)
 summary(gam1)
 #plot(gam1)
 #vis.gam(gam1)
@@ -217,11 +217,11 @@ mad <- cbind(mad,"QREG" = mean(abs(hotelv4Valid$Occupancy-hValid$qreg)))
 #calculate MAD and plot fits of validation set for SVM
 with (hotelv4Valid,plot(hValid$psvm1,Occupancy))
 with (hotelv4Valid,lines(lowess(hValid$psvm1,Occupancy),col='red'))
-mad <- cbind(mad,"SVN" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
+mad <- cbind(mad,"SVM" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
 
 #plot MAPE
-#order <- order(colMeans(mad),decreasing = FALSE)
-#sorted <- mad[1,order]
+order <- order(colMeans(mad),decreasing = FALSE)
+sorted <- mad[1,order]
 #barplot((as.matrix(sorted)),col="blue")
 #title("Summary of MAD")
 #title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
