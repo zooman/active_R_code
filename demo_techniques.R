@@ -83,9 +83,9 @@ ptree1 <- ctree(Occupancy ~ ., controls=ctree_control(minbucket=30), data=hotelv
 #run tree CART algorithm
 library(rpart)
 tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
-printcp(tree1)
+#printcp(tree1)
 #plot(tree1, uniform=FALSE)
-text(tree1,digits=3, cex=.7)
+#text(tree1,digits=3, cex=.7)
 
 #neural net
 library(nnet)
