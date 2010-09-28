@@ -64,7 +64,7 @@ hotelv4Train <- subset(hotelv4Train,select = -c(random ))
 library(pls)
 plsm1 <- mvr(Occupancy ~., 20,data=hotelv4Train, validation="CV")
 coef(plsm1)
-loadings(plsm1)
+#loadings(plsm1)
 #plot(RMSEP(plsm1), legendpos = "topright")
 #plot(plsm1, "loadings", comps = 1:3,legendpos = "topleft")
 summary(plsm1)
@@ -225,7 +225,10 @@ title("Summary of MAD")
 title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
 
 
-#PROC MIXED or LME Mixed Models for Panel Data
+#LME Mixed Models for Panel Data
+#PROC MIXED
+
+
 
 
 
