@@ -89,7 +89,7 @@ tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
 
 #neural net
 library(nnet)
-nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train, rang=.1,size=10,maxit=1000,linout=T)
+nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=8,maxit=1000,linout=T)
 
 #support vector machine
 library(e1071)
