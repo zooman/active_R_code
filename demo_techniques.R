@@ -15,22 +15,22 @@ hotel_raw <-read.csv(file="hi.csv")
 hotelv1 <- hotel_raw[,-1]
 
 lm_model <- lm (Occupancy ~ ., data=hotelv1)
-plot(lm_model)
+#plot(lm_model)
 
 hotelv2 <- hotelv1[-829,]
 lm_model <- lm (Occupancy ~ ., data=hotelv2)
-plot(lm_model)
+#plot(lm_model)
 
 hotelv3 <- hotelv2[-357,]
 lm_model <- lm (Occupancy ~ ., data=hotelv3)
-plot(lm_model)
+#plot(lm_model)
 
 #final data set
 hotelv4 <- subset(hotelv3,select = -c(web_nts_totsty,PercentLeisure,PercentTransientNights))
 
 #plot by mgmt type
 library(lattice)
-xyplot(Occupancy ~ Compet_Occupancy |MGMT_TYP_DESC, data=hotelv4,type=c('p', 'smooth'), col="red")
+#xyplot(Occupancy ~ Compet_Occupancy |MGMT_TYP_DESC, data=hotelv4,type=c('p', 'smooth'), col="red")
 
 #create a new variable - random uniform
 hotelv4 <- transform(hotelv4,random=runif(nrow(hotelv4)))
@@ -43,45 +43,48 @@ hotelv4Valid <- subset(hotelv4,random>.8)
 #start regression methods
 
 #fit linear regression
+#SAS PROC REG
 lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
 plot(lm_model)
 
 #fit robust regression
 #SAS RobustReg
 library(MASS)
-rlm1 <- rlm(Occupancy ~., data=hotelv4Train)
+rlm1 <- rlm(Occupancy ~., maxit=100,data=hotelv4Train)
 summary(rlm1)
 
 #fit quantile regression
+#SAS QUANTREG
 library(quantreg)
 qm1 <- rq(Occupancy ~.,tau=.5, data=hotelv4Train)
 
 #fit PLS
 # SAS PROC PLS
+hotelv4Train <- subset(hotelv4Train,select = -c(random ))
 library(pls)
 plsm1 <- mvr(Occupancy ~., 20,data=hotelv4Train, validation="CV")
 coef(plsm1)
 loadings(plsm1)
-plot(RMSEP(plsm1), legendpos = "topright")
-plot(plsm1, "loadings", comps = 1:3,legendpos = "topleft")
+#plot(RMSEP(plsm1), legendpos = "topright")
+#plot(plsm1, "loadings", comps = 1:3,legendpos = "topleft")
 summary(plsm1)
 
 #random forest
 library(randomForest)
 rf1 <- randomForest(Occupancy ~ ., data=hotelv4Train, ntree=50, importance=TRUE)
-plot(rf1)
-varImpPlot(rf1)
+#plot(rf1)
+#varImpPlot(rf1)
 
 #run regression tree
 library(party)
 ptree1 <- ctree(Occupancy ~ ., controls=ctree_control(minbucket=30), data=hotelv4Train)
-plot(ptree1, main="Hotel Tree", type="simple")
+#plot(ptree1, main="Hotel Tree", type="simple")
 
 #run tree CART algorithm
 library(rpart)
 tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
 printcp(tree1)
-plot(tree1, uniform=FALSE)
+#plot(tree1, uniform=FALSE)
 text(tree1,digits=3, cex=.7)
 
 #neural net
@@ -97,24 +100,24 @@ svm1 <- svm(Occupancy ~., data=hotelv4Train, type='eps')
 library(mgcv)
 gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(PercentGroupNights)+ s(Compet_AvgDailyRate) + s(slf_nts_totsty)+ LOC_DESC, data=hotelv4Train)
 summary(gam1)
-plot(gam1)
-vis.gam(gam1)
-gam.check(gam1)
+#plot(gam1)
+#vis.gam(gam1)
+#gam.check(gam1)
 
 
 
 
 #variable importance and classification
 #SAS PROC GLMSELECT
-library(caret)
-ctrl <- rfeControl(functions = rfFuncs, method = "cv",workers=2,verbose = FALSE,returnResamp = "final")
-y <- hotelv4Train$Occupancy
-x <- subset(hotelv4Train,select = -c(Occupancy))
-subsets <- c(1:19)
-lmProfile <- rfe(x, y,sizes = subsets,rfeControl = ctrl)
-lmProfile
-plot(lmProfile, metric = "Rsquared",type="b")
-predictors(lmProfile)
+#library(caret)
+#ctrl <- rfeControl(functions = rfFuncs, method = "cv",workers=2,verbose = FALSE,returnResamp = "final")
+#y <- hotelv4Train$Occupancy
+#x <- subset(hotelv4Train,select = -c(Occupancy))
+#subsets <- c(1:19)
+#lmProfile <- rfe(x, y,sizes = subsets,rfeControl = ctrl)
+##lmProfile
+##plot(lmProfile, metric = "Rsquared",type="b")
+#predictors(lmProfile)
 
 
 #R squared decomposition
@@ -123,7 +126,7 @@ lm_model <- lm (Occupancy ~ Compet_Occupancy + PercentGroupNights + LOC_DESC + A
 library(relaimpo)
 a <- calc.relimp(lm_model,type = c("lmg","last", "first"), rela = TRUE)
 #a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
-plot(a)
+#plot(a)
 
 
 
