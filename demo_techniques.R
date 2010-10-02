@@ -205,12 +205,12 @@ par(mfrow=c(2,6))
 
 with (hotelv4Valid,plot(hValid$fit,Occupancy))
 with (hotelv4Valid,lines(lowess(hValid$fit,Occupancy),col='red'))
-mad <- data.frame("ols" = mean(abs(hotelv4Valid$Occupancy-hValid$fit)))
+mad <- data.frame("OLS" = mean(abs(hotelv4Valid$Occupancy-hValid$fit)))
 
 #calculate MAD and plot fits of validation set for GAM
 with (hotelv4Valid,plot(hValid$pgam,Occupancy))
 with (hotelv4Valid,lines(lowess(hValid$pgam,Occupancy),col='red'))
-mad <- cbind(mad,"gam" = mean(abs(hotelv4Valid$Occupancy-hValid$pgam)))
+mad <- cbind(mad,"GAM" = mean(abs(hotelv4Valid$Occupancy-hValid$pgam)))
 
 #calculate MAD and plot fits of validation set for RF
 with (hotelv4Valid,plot(hValid$prf,Occupancy))
