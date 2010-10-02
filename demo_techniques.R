@@ -85,7 +85,7 @@ library(penalized)
 library(lars)
 lessocc <- subset(hotelv4Train, select = -c(Occupancy))
 lar <- lars(data.matrix(lessocc),data.matrix(hotelv4Train$Occupancy))
-plot(lar)
+#plot(lar)
 
 #fit MARS
 library(earth)
