@@ -47,9 +47,10 @@ hotelv4Valid <- subset(hotelv4,random>.8)
 #SAS PROC REG
 lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
 #plot(lm_model)
+
 #fit stepwise
-#step_lm <- step(lm_model,direction="both")
-#summary(step_lm)
+step_lm <- step(lm_model,direction="backward")
+summary(step_lm)
 
 
 #fit robust regression
@@ -149,10 +150,10 @@ summary(gam1)
 
 #R squared decomposition
 #run variance decomposition
-#lm_model <- lm (Occupancy ~ Compet_Occupancy + PercentGroupNights + AvgDailyRate + PercentBusiness + slf_nts_totsty, data=hotelv4Train)
+#decomp_model <- lm (Occupancy ~ Compet_Occupancy + PercentGroupNights + AvgDailyRate + PercentBusiness + slf_nts_totsty, data=hotelv4Train)
 #library(relaimpo)
-#a <- calc.relimp(lm_model,type = c("lmg","last", "first"), rela = TRUE)
-#a <- calc.relimp(ols,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
+#a <- calc.relimp(decomp_model,type = c("lmg","last", "first"), rela = TRUE)
+#a <- calc.relimp(decomp_model,type = c("lmg", "pmvd", "last", "first", "betasq", "pratt"), rela = TRUE)
 #plot(a)
 
 
@@ -200,7 +201,7 @@ plars <- data.frame(predict(lar,data.matrix(xlars), type="fit", s=17))
 hValid <- data.frame(hValid,plars[,4])
 
 
-#calculate MAD and plot fits of validation set for OLS
+#calculate MAD and plot fits on validation data for all models
 par(mfrow=c(2,6))
 
 with (hotelv4Valid,plot(hValid$fit,Occupancy))
@@ -267,9 +268,9 @@ mad <- cbind(mad,"LARS" = mean(abs(hotelv4Valid$Occupancy-hValid$plars)))
 ##plot MAPE
 order <- order(colMeans(mad),decreasing = FALSE)
 sorted <- mad[1,order]
-#barplot((as.matrix(sorted)),col="blue")
-#title("Summary of MAD")
-#title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
+barplot((as.matrix(sorted)),col="blue")
+title("Summary of MAD")
+title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
 
 
 #LME Mixed Models for Panel Data
