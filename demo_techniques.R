@@ -245,11 +245,11 @@ names(latentpred) <- "platent"
 hValid <- data.frame(hValid,latentpred)
 
 #look at latent clusters
-latentClusterData <- data.frame(hotelv4Valid,clusters(lreg,newdata=hotelv4Valid))
-names(latentClusterData)[22] <- "cluster"
-latentClusterData$cluster <- as.factor(latentClusterData$cluster)
-library(doBy)
-summaryBy(. ~ cluster, data=latentClusterData)
+#latentClusterData <- data.frame(hotelv4Valid,clusters(lreg,newdata=hotelv4Valid))
+#names(latentClusterData)[22] <- "cluster"
+#latentClusterData$cluster <- as.factor(latentClusterData$cluster)
+#library(doBy)
+#summaryBy(. ~ cluster, data=latentClusterData)
 
 ##CREATE Mean Absolute Deviations (MAD) data frame######################################################
 
