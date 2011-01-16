@@ -4,12 +4,10 @@
 options(prompt="R> ", digits=4)
 options(scipen=3)
 
-# regression techniques
+# review various regression techniques, cross-sectional data ##################
+
 #library(Hmisc)
 #hist(hotelv4)
-
-#linear regression
-#SAS PROC REG
 
 ####ETL#########################################################################
 
