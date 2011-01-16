@@ -10,17 +10,24 @@ options(scipen=3)
 
 #linear regression
 #SAS PROC REG
-hotel_raw <-read.csv(file="hi.csv")
 
+####ETL#########################################################################
+
+
+#import files and remove first column
+hotel_raw <-read.csv(file="hi.csv")
 hotelv1 <- hotel_raw[,-1]
 
+#run model to look for outliers
 lm_model <- lm (Occupancy ~ ., data=hotelv1)
 #plot(lm_model)
 
+#remove a row and rerun OLS for outliers
 hotelv2 <- hotelv1[-829,]
 lm_model <- lm (Occupancy ~ ., data=hotelv2)
 #plot(lm_model)
 
+#remove a row and rerun OLS for outliers
 hotelv3 <- hotelv2[-357,]
 lm_model <- lm (Occupancy ~ ., data=hotelv3)
 #plot(lm_model)
@@ -29,7 +36,7 @@ lm_model <- lm (Occupancy ~ ., data=hotelv3)
 hotelv4 <- subset(hotelv3,select = -c(web_nts_totsty,PercentLeisure,PercentTransientNights,LOC_DESC))
 
 #plot by mgmt type
-library(lattice)
+#library(lattice)
 #xyplot(Occupancy ~ Compet_Occupancy |MGMT_TYP_DESC, data=hotelv4,type=c('p', 'smooth'), col="red")
 
 #create a new variable - random uniform
@@ -39,25 +46,25 @@ hotelv4 <- transform(hotelv4,random=runif(nrow(hotelv4)))
 hotelv4Train <- subset(hotelv4,random<=.8)
 hotelv4Valid <- subset(hotelv4,random>.8)
 
-#####################################################################################
-#####################################################################################
-#start regression methods
+
+################START ENSEMBLE REGRESSION APPROACH###########################
+
+#Start regression methods
 
 #fit linear regression
 #SAS PROC REG
 lm_model <- lm (Occupancy ~ ., data=hotelv4Train)
 #plot(lm_model)
 
-#fit stepwise
-step_lm <- step(lm_model,direction="backward")
-summary(step_lm)
-
+#fit stepwise minimum AIC
+step_lm <- step(lm_model,direction="backward", trace=1)
+#summary(step_lm)
 
 #fit robust regression
 #SAS RobustReg, useful for outliers
 library(MASS)
 rlm1 <- rlm(Occupancy ~., maxit=100,data=hotelv4Train)
-summary(rlm1)
+#summary(rlm1)
 
 #fit quantile regression
 #SAS QUANTREG, useful for outliers
@@ -66,35 +73,15 @@ qm1 <- rq(Occupancy ~.,tau=.5, data=hotelv4Train)
 
 #fit PLS
 # SAS PROC PLS, useful for collinearity
-
 library(pls)
 plsm1 <- mvr(Occupancy ~., 20,data=hotelv4Train, validation="CV")
 #coef(plsm1)
-#loadings(plsm1)
 #plot(RMSEP(plsm1), legendpos = "topright")
+#loadings(plsm1)
 #plot(plsm1, "loadings", comps = 1:3,legendpos = "topleft")
 #summary(plsm1)
 
-
-#fit penalized
-library(penalized)
-#pen <- penalized(Occupancy ~., data=hotelv4Train,model="linear", lambda1=.1,steps=50,standardize=TRUE, maxiter=100)
-#plotpath(pen,labelsize=.5)
-#coefficients(pen)
-
-#fit lars
-library(lars)
-lessocc <- subset(hotelv4Train, select = -c(Occupancy))
-lar <- lars(data.matrix(lessocc),data.matrix(hotelv4Train$Occupancy))
-#plot(lar)
-
-#fit MARS
-library(earth)
-mars <- earth(Occupancy ~., data=hotelv4Train)
-summary(mars)
-#evimp(mars)
-#plot(mars)
-#plotmo(mars)
+###MACHINE###############
 
 #random forest, useful for prediction and variable importance
 library(randomForest)
@@ -110,7 +97,8 @@ ptree1 <- ctree(Occupancy ~ ., controls=ctree_control(minbucket=30), data=hotelv
 #run tree CART algorithm
 library(rpart)
 tree1 <- rpart(Occupancy ~ ., data=hotelv4Train,method='anova',cp=.005)
-#printcp(tree1)
+#plot tree
+printcp(tree1)
 #plot(tree1, uniform=FALSE)
 #text(tree1,digits=3, cex=.7)
 
@@ -122,18 +110,60 @@ nnet1 <- nnet(Occupancy ~ ., data=hotelv4Train,size=7,maxit=2000,decay = .001,li
 library(e1071)
 svm1 <- svm(Occupancy ~., data=hotelv4Train, type='eps')
 
-#run GAM
+
+###HYBRID#####################################################################
+
+##Run GAM
 #SAS PROC GAM, functional form / non-linearities
 library(mgcv)
 gam1 <- gam(Occupancy ~ s(Compet_Occupancy) + s(AvgDailyRate,Compet_AvgDailyRate) + s(PercentGovtNights) + slf_nts_totsty + RMS_AVAIL_QTY + PercentGroupNights, data=hotelv4Train)
-summary(gam1)
+#summary(gam1)
 #plot(gam1)
 #vis.gam(gam1)
 #gam.check(gam1)
 
+#fit lars
+library(lars)
+lessocc <- subset(hotelv4Train, select = -c(Occupancy))
+lar <- lars(data.matrix(lessocc),data.matrix(hotelv4Train$Occupancy))
+#plot(lar)
 
-#variable importance and classification
+
+#fit penalized
+#library(penalized)
+#pen <- penalized(Occupancy ~., data=hotelv4Train,model="linear", lambda1=.1,steps=50,standardize=TRUE, maxiter=100)
+#plotpath(pen,labelsize=.5)
+#coefficients(pen)
+
+
+#fit MARS
+library(earth)
+mars <- earth(Occupancy ~., data=hotelv4Train)
+#summary(mars)
+#evimp(mars)
+#plot(mars)
+#plotmo(mars)
+
+
+#FIT Latent Class Regression not available in SAS, proc LCA not supported by SAS
+library(flexmix)
+lreg <- flexmix(Occupancy ~ Compet_Occupancy + AvgDailyRate + Compet_AvgDailyRate + PercentGovtNights + slf_nts_totsty + RMS_AVAIL_QTY + PercentGroupNights, data=hotelv4Train, k=2)
+#summary(lreg)
+#plot(lreg)
+#fitlreg <- refit(lreg)
+#summary(fitlreg)
+#plot(fitlreg)
+
+#steplreg <- stepFlexmix(Occupancy ~ Compet_Occupancy + AvgDailyRate + Compet_AvgDailyRate + PercentGovtNights + slf_nts_totsty + RMS_AVAIL_QTY + PercentGroupNights, data=hotelv4Train, k=1:5, nrep=5)
+#getModel(steplreg,"BIC")
+
+
+
+###Variable importance and classification######################################
+
+
 #SAS PROC GLMSELECT
+
 #library(caret)
 #ctrl <- rfeControl(functions = rfFuncs, method = "cv",workers=2,verbose = FALSE,returnResamp = "final")
 #y <- hotelv4Train$Occupancy
@@ -157,8 +187,10 @@ summary(gam1)
 #plot(a)
 
 
-#predict validation data set
-#predict over validation set and append variables to dataframe
+####Predict Validation Data Set################################################
+
+
+###Predict over validation set and append variables to dataframe
 pols <- data.frame(predict(lm_model,newdata=hotelv4Valid,interval='prediction'))
 hValid <- data.frame(pols)
 
@@ -200,72 +232,46 @@ xlars <- subset(hotelv4Valid,select = -c(Occupancy))
 plars <- data.frame(predict(lar,data.matrix(xlars), type="fit", s=17))
 hValid <- data.frame(hValid,plars[,4])
 
+#latent class regression model
+platentreg <- data.frame(predict(lreg,newdata=hotelv4Valid))
 
-#calculate MAD and plot fits on validation data for all models
-par(mfrow=c(2,6))
+#1 weighted model
+#pred <- data.frame(pred1 = predict(lreg, newdata=hotelv4Valid)$Comp.1, wt1 = posterior(lreg)[, 1],pred2 = predict(lreg, newdata=hotelv4Valid)$Comp.2, wt2 = posterior(lreg)[, 2])
+#pred$yhat <- pred$pred1 * pred$wt1 + pred$pred2 * pred$wt2
 
-with (hotelv4Valid,plot(hValid$fit,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$fit,Occupancy),col='red'))
+#2 select model
+latentCluster <- clusters(lreg,newdata=hotelv4Valid)
+latentScores <- data.frame(pred1 = predict(lreg, newdata=hotelv4Valid)$Comp.1, pred2 = predict(lreg, newdata=hotelv4Valid)$Comp.2,latentCluster)
+latentpred <- data.frame(ifelse(latentScores$latentCluster == 1,latentScores$pred1, latentScores$pred2))
+names(latentpred) <- "platent"
+hValid <- data.frame(hValid,latentpred)
+
+#look at latent clusters
+latentClusterData <- data.frame(hotelv4Valid,clusters(lreg,newdata=hotelv4Valid))
+names(latentClusterData)[22] <- "cluster"
+latentClusterData$cluster <- as.factor(latentClusterData$cluster)
+library(doBy)
+summaryBy(. ~ cluster, data=latentClusterData)
+
+##CREATE Mean Absolute Deviations (MAD) data frame######################################################
+
 mad <- data.frame("OLS" = mean(abs(hotelv4Valid$Occupancy-hValid$fit)))
-
-#calculate MAD and plot fits of validation set for GAM
-with (hotelv4Valid,plot(hValid$pgam,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$pgam,Occupancy),col='red'))
 mad <- cbind(mad,"GAM" = mean(abs(hotelv4Valid$Occupancy-hValid$pgam)))
-
-#calculate MAD and plot fits of validation set for RF
-with (hotelv4Valid,plot(hValid$prf,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$prf,Occupancy),col='red'))
 mad <- cbind(mad,"RF" = mean(abs(hotelv4Valid$Occupancy-hValid$prf)))
-
-#calculate MAD and plot fits of validation set for NNET
-with (hotelv4Valid,plot(hValid$pnn,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$pnn,Occupancy),col='red'))
 mad <- cbind(mad,"NNET" = mean(abs(hotelv4Valid$Occupancy-hValid$pnn)))
-
-#calculate MAD and plot fits of validation set for Tree
-with (hotelv4Valid,plot(hValid$ptree,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$ptree,Occupancy),col='red'))
 mad <- cbind(mad,"TREE" = mean(abs(hotelv4Valid$Occupancy-hValid$ptree)))
-
-#calculate MAD and plot fits of validation set for Tree2
-with (hotelv4Valid,plot(hValid$ptree2,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$ptree2,Occupancy),col='red'))
 mad <- cbind(mad,"TREE2" = mean(abs(hotelv4Valid$Occupancy-hValid$ptree2)))
-
-#calculate MAD and plot fits of validation set for PLS
-with (hotelv4Valid,plot(hValid$ppls,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$ppls,Occupancy),col='red'))
 mad <- cbind(mad,"PLS" = mean(abs(hotelv4Valid$Occupancy-hValid$ppls)))
-
-#calculate MAD and plot fits of validation set for RREG
-with (hotelv4Valid,plot(hValid$prlm,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$prlm,Occupancy),col='red'))
 mad <- cbind(mad,"RREG" = mean(abs(hotelv4Valid$Occupancy-hValid$prlm)))
-
-#calculate MAD and plot fits of validation set for QREG
-with (hotelv4Valid,plot(hValid$qreg,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$qreg,Occupancy),col='red'))
 mad <- cbind(mad,"QREG" = mean(abs(hotelv4Valid$Occupancy-hValid$qreg)))
-
-#calculate MAD and plot fits of validation set for SVM
-with (hotelv4Valid,plot(hValid$psvm1,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$psvm1,Occupancy),col='red'))
 mad <- cbind(mad,"SVM" = mean(abs(hotelv4Valid$Occupancy-hValid$psvm1)))
-
-#calculate MAD and plot fits of validation set for MARS
-with (hotelv4Valid,plot(hValid$pmars,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$pmars,Occupancy),col='red'))
 mad <- cbind(mad,"MARS" = mean(abs(hotelv4Valid$Occupancy-hValid$pmars)))
-
-
-#calculate MAD and plot fits of validation set for LARS
-with (hotelv4Valid,plot(hValid$plars,Occupancy))
-with (hotelv4Valid,lines(lowess(hValid$plars,Occupancy),col='red'))
 mad <- cbind(mad,"LARS" = mean(abs(hotelv4Valid$Occupancy-hValid$plars)))
+mad <- cbind(mad,"LAT2" = mean(abs(hotelv4Valid$Occupancy-hValid$platent)))
 
 
-##plot MAPE
+##plot MAPE####################################################################
+
 order <- order(colMeans(mad),decreasing = FALSE)
 sorted <- mad[1,order]
 barplot((as.matrix(sorted)),col="blue")
@@ -273,7 +279,65 @@ title("Summary of MAD")
 title("Summary of Fits on Validation Sample", outer=TRUE, line=-1) 
 
 
-#LME Mixed Models for Panel Data
+#####Calculate MAD and plot fits on validation data for all models##########
+
+par(mfrow=c(4,4))
+
+with (hotelv4Valid,plot(hValid$fit,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$fit,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for GAM
+with (hotelv4Valid,plot(hValid$pgam,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$pgam,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for RF
+with (hotelv4Valid,plot(hValid$prf,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$prf,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for NNET
+with (hotelv4Valid,plot(hValid$pnn,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$pnn,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for Tree
+with (hotelv4Valid,plot(hValid$ptree,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$ptree,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for Tree2
+with (hotelv4Valid,plot(hValid$ptree2,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$ptree2,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for PLS
+with (hotelv4Valid,plot(hValid$ppls,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$ppls,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for RREG
+with (hotelv4Valid,plot(hValid$prlm,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$prlm,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for QREG
+with (hotelv4Valid,plot(hValid$qreg,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$qreg,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for SVM
+with (hotelv4Valid,plot(hValid$psvm1,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$psvm1,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for MARS
+with (hotelv4Valid,plot(hValid$pmars,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$pmars,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for LARS
+with (hotelv4Valid,plot(hValid$plars,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$plars,Occupancy),col='red'))
+
+#calculate MAD and plot fits of validation set for LATENT
+with (hotelv4Valid,plot(hValid$platent,Occupancy))
+with (hotelv4Valid,lines(lowess(hValid$platent,Occupancy),col='red'))
+
+
+
+
+####LME Mixed Models for Panel Data####################################
 #PROC MIXED
 
 
