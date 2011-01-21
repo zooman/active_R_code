@@ -246,11 +246,25 @@ names(latentpred) <- "platent"
 hValid <- data.frame(hValid,latentpred)
 
 #look at latent clusters
-#latentClusterData <- data.frame(hotelv4Valid,clusters(lreg,newdata=hotelv4Valid))
-#names(latentClusterData)[22] <- "cluster"
+latentClusterData <- data.frame(rescaler(hotelv4Valid[,-2:-3],type="sd"),clusters(lreg,newdata=hotelv4Valid))
+names(latentClusterData)[20] <- "cluster"
 #latentClusterData$cluster <- as.factor(latentClusterData$cluster)
-#library(doBy)
-#summaryBy(. ~ cluster, data=latentClusterData)
+library(doBy)
+latentMeans <- data.frame(t(summaryBy(. ~ cluster, data=latentClusterData)))[-1:-2,]
+
+#run bar plots
+par(mfrow=c(1,2))
+#margin reduce bottom
+par(mar=c(3,4.1,4.1,2.1))
+labels=rownames(latentMeans)
+for(i in 1:2) {
+	vplot <- paste("X",i,sep="")
+	a <- barplot(latentMeans[,vplot],las=2,col=ifelse(latentMeans[,vplot] >= .3, 'green', ifelse(latentMeans[,vplot] <= -.3, 'red', 'grey')),horiz=TRUE, main = paste("Cluster ",i," Summary"))
+	mtext(text=labels, side=2, line=-3, at=a, cex=.6, col="black", las=2)
+	mtext(text=paste("n=",kout$size[i]), side=3, cex=.6)
+	lines(-.5, 35, type='h', col='red', lty=2)
+	lines(.5, 35, type='h', col='red', lty=2)
+}
 
 ##CREATE Mean Absolute Deviations (MAD) data frame######################################################
 
