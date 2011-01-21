@@ -250,7 +250,8 @@ latentClusterData <- data.frame(rescaler(hotelv4Valid[,-2:-3],type="sd"),cluster
 names(latentClusterData)[20] <- "cluster"
 #latentClusterData$cluster <- as.factor(latentClusterData$cluster)
 library(doBy)
-latentMeans <- data.frame(t(summaryBy(. ~ cluster, data=latentClusterData)))[-1:-2,]
+latentMeans <- data.frame(t(summaryBy(. ~ cluster, data=latentClusterData)))[-1,]
+latentMeans <- latentMeans[-19,]
 
 #run bar plots
 par(mfrow=c(1,2))
