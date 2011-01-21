@@ -6,7 +6,7 @@ options(scipen=3)
 
 # review various regression techniques, cross-sectional data ##################
 
-#library(Hmisc)
+library(Hmisc)
 #hist(hotelv4)
 
 ####ETL#########################################################################
