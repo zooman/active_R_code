@@ -63,3 +63,26 @@ plot(0,0,asp=1,xlim=c(-2,2),ylim=c(-2,2), type="n", xlab = NA, ylab = NA, ann=FA
 # Bones
 polygon(circle(1.5,1.125,3/16),col="white",border=NA)
 polygon(circle(1.125,1.5,3/16),col="white",border=NA)
+
+
+
+#qgraph
+
+
+raw <- read.csv("hi.csv")
+
+raw$RMS_AVAIL_QTY <- NULL
+raw$STRUCT_DESC <- NULL
+raw$LOC_DESC <- NULL
+
+raw$PercentTransientNights <- NULL
+raw$Business <- NULL
+raw$inn_nts_totsty <- NULL
+
+
+library(qgraph)
+
+
+
+
+
