@@ -67,20 +67,40 @@ polygon(circle(1.125,1.5,3/16),col="white",border=NA)
 
 
 #qgraph
-
-
 raw <- read.csv("hi.csv")
 
 raw$RMS_AVAIL_QTY <- NULL
-raw$STRUCT_DESC <- NULL
+raw$STRUC_DESC <- NULL
 raw$LOC_DESC <- NULL
+raw$MGMT_TYP_DESC <- NULL
 
 raw$PercentTransientNights <- NULL
-raw$Business <- NULL
+raw$PercentBusiness <- NULL
 raw$inn_nts_totsty <- NULL
-
+raw$FAC_ID <- NULL
 
 library(qgraph)
+y <- cor(raw)
+ynames <- dimnames(y)[1]
+toolnames <- unlist(ynames)
+
+qgraph(y)
+qgraph(y,minimum=.3,directed=TRUE,details=TRUE,edge.labels=TRUE,edge.label.cex=.6)
+title("EDA: Correlation Network",line=-1,cex.main=1)
+
+qgraph(y,minimum=.2,mode='strength',directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='association')
+qgraph(y,minimum=.2,mode="strength",directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='concentration')
+qgraph(y,minimum=.2,directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='factorial')
+
+qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.10,layout="tree")
+qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.03,factorCors=TRUE,scores="regression",crossloadings=FALSE)
+
+#facty <- factanal(raw,5,rotation='varimax')
+#qgraph.loadings(facty$loadings,model='formative',minimum=.2,details=TRUE,crossloadings=FALSE,factorCors=FALSE)
+
+qgraph(y,filetype='tex',tooltips=toolnames)
+qgraph(y,filetype='tex',tooltips=toolnames,minimum=.2,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
+qgraph(y,filetype='tex',tooltips=toolnames,minimum=.2,directed=FALSE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
 
 
 
