@@ -20,6 +20,7 @@ p<-c(p,"gmodels")
 p<-c(p,"leaps")
 p<-c(p,"gtools"); #used for hvqgraph
 p<-c(p,"seas"); #used for hvqgraph
+p<-c(p,"doBy")
 
 #database
 p<-c(p,"DBI")
@@ -50,6 +51,7 @@ p<-c(p,"mgcv")
 
 #graphs and networks
 p<-c(p,"igraph")
+p<-c(p,"qgraph")
 
 #statistics
 p<-c(p,"survival")
