@@ -66,10 +66,9 @@ polygon(circle(1.125,1.5,3/16),col="white",border=NA)
 
 
 
-#qgraph
+#----------------qgraph-----------------------
 raw <- read.csv("hi.csv")
 
-raw$RMS_AVAIL_QTY <- NULL
 raw$STRUC_DESC <- NULL
 raw$LOC_DESC <- NULL
 raw$MGMT_TYP_DESC <- NULL
@@ -85,24 +84,75 @@ ynames <- dimnames(y)[1]
 toolnames <- unlist(ynames)
 
 qgraph(y)
+
+qgraph(y,minimum=.3,directed=FALSE,details=TRUE,edge.labels=TRUE,edge.label.cex=.6)
 qgraph(y,minimum=.3,directed=TRUE,details=TRUE,edge.labels=TRUE,edge.label.cex=.6)
-title("EDA: Correlation Network",line=-1,cex.main=1)
+#title("EDA: Correlation Network",line=-1,cex.main=1)
 
-qgraph(y,minimum=.2,mode='strength',directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='association')
-qgraph(y,minimum=.2,mode="strength",directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='concentration')
-qgraph(y,minimum=.2,directed=FALSE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='factorial')
+qgraph(y,minimum=.2,mode='strength',cut=.5,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.6, asize=.1,graph='association')
+qgraph(y,minimum=.1,mode="strength",cut=.2,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.6, asize=.1,graph='concentration')
+qgraph(y,minimum=.1,directed=TRUE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='factorial')
 
-qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.10,layout="tree")
+
+qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.03,layout="tree")
+#par(mfrow=c(2,1))
 qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.03,factorCors=TRUE,scores="regression",crossloadings=FALSE)
+#qgraph.efa(raw,5,rotation='varimax',details=TRUE, minimum=.03,factorCors=TRUE,scores="regression",crossloadings=TRUE)
 
 #facty <- factanal(raw,5,rotation='varimax')
 #qgraph.loadings(facty$loadings,model='formative',minimum=.2,details=TRUE,crossloadings=FALSE,factorCors=FALSE)
 
 qgraph(y,filetype='tex',tooltips=toolnames)
-qgraph(y,filetype='tex',tooltips=toolnames,minimum=.2,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
-qgraph(y,filetype='tex',tooltips=toolnames,minimum=.2,directed=FALSE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
+qgraph(y,filetype='tex',tooltips=toolnames,cut=.5,minimum=.2,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
+qgraph(y,filetype='tex',tooltips=toolnames,cut=.2,minimum=.1,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='concentration')
+
+#----------------------customer data
+
+raw <-read.csv(file="sample_customer.csv")
+raw$SUCCESS_B <- NULL
+raw$IDS_BOOK_PCT <- NULL
+raw <- raw[,-1]
+str(raw)
+
+y <- cor(raw)
+qgraph(y, directed=TRUE,details=TRUE)
+qgraph(y,directed=TRUE,details=TRUE,graph='concentration')
+qgraph(y,directged=TRUE,details=TRUE,graph='factorial')
 
 
+#mmx data-----------------
 
+raw <-read.csv(file="manormmx.csv")
 
+raw$Date <- NULL
+cgroups <- raw$market
+raw$market <- NULL
+raw$Google_Impper_store <- NULL
+raw$MEDIAN_HH_SIZE <- NULL
+raw$percent_NON_HISP_ASIAN_PACIFIC <- NULL
+raw$percent_POP_55__YEARS_of_AGE <- NULL
+raw$HHs_per_SQ_MILE  <- NULL
+raw$TOT_HOUSING_UNITS_2008per_store <- NULL
+raw$percent_NON_HISP_BLACK_PERSON_H <- NULL
+raw$percent_NON_HISP_WHITE_PERSON_H <- NULL
+raw$percent_POP_0_20_YEARS_of_AGE <- NULL
+raw$SQ_MILES_of_MARKETper_store <- NULL
+raw$TOTAL_HHsper_store <- NULL
+raw$percent_POP_21_34_YEARS_of_AGE <- NULL
+raw$percent_POP_35_44_YEARS_of_AGE <- NULL
+raw$percent_POP_45_49_YEARS_of_AGE <- NULL
+raw$percent_POP_50_54_YEARS_of_AGE <- NULL
+
+y <- cor(raw)
+#qgraph(cor(raw), groups=cgroups)
+qgraph(y)
+qgraph(y,directed=TRUE)
+qgraph(y,minimum=.3,mode='strength',directed=TRUE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='association')
+qgraph(y,minimum=.1,mode='strength',directed=TRUE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='concentration')
+#qgraph(y,minimum=.2,mode='strength',directed=TRUE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='factorial')
+
+finsingular <- lm(Salesper_store ~ .,data=raw)	
+
+fact <- factanal(raw,15,rotation="varimax",nstart=20,lower=.01)
+qgraph.efa(fact,details=TRUE, minimum=.03,factorCors=TRUE,scores="regression",crossloadings=FALSE)
 
