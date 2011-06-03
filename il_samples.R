@@ -24,6 +24,7 @@
 raw <-read.csv(file="export.txt")
 raw$SUCCESS_B <- NULL
 raw$IDS_BOOK_PCT <- NULL
+raw <- raw[,-1]
 
 library(Hmisc)
 describe(raw)
@@ -31,17 +32,27 @@ hist(raw)
 
 cor(raw)
 # corr plots
-pairs(raw[,2:17],panel=panel.smooth)
+pairs(raw[,1:6],panel=panel.smooth)
 
 plot(raw$BUS_PERCENT,raw$GDS_BOOK_PCT, main="Scatterplot Example", col=rgb(0,100,0,50,maxColorValue=255), pch=16)
 abline(lm(raw$BUS_PERCENT~raw$GDS_BOOK_PCT), col="red") # regression line (y~x)
-lines(lowess(raw$BUS_PERCENT,raw$GDS_BOOK_PCT,f=2/3),col="blue") # lowess line (x,y) 
+lines(lowess(raw$BUS_PERCENT,raw$GDS_BOOK_PCT,f=2/3),col="blue") # lowess line (x,y)
+
 library(hexbin)
 bin<-hexbin(raw$STAY_C,raw$WEB_BOOK_PCT, xbins=50)
 plot(bin, main="Hexagonal Binning")
 
 library(corrgram)
-corrgram(raw,cex.labels=.7,order=TRUE,lower.panel=panel.pie,upper.panel=panel.shade, text.panel=panel.txt)
+corrgram(raw,cex.labels=.7,order=TRUE,lower.panel=panel.shade,upper.panel=panel.shade, text.panel=panel.txt)
+
+y <- cor(raw)
+ynames <- dimnames(y)[1]
+toolnames <- unlist(ynames)
+
+library(qgraph)
+qgraph(cor(raw),directed=TRUE,details=TRUE,graph='concentration')
+qgraph(cor(raw),filetype='tex',tooltips=toolnames,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.7, asize=.1,graph='association')
+qgraph.efa(raw,6,rotation='varimax',details=TRUE, layout='TREE',factorCors=TRUE,scores="regression",crossloadings=FALSE)
 
 #library(quantreg)
 #zreg <- rq(raw$BUS_PERCENT~raw$GDS_BOOK_PCT, .5)
@@ -132,7 +143,7 @@ hvqdata <- hvq_k$ztab
 hvqdata <- subset(hvqdata, hvqdata$n>100)
 
 #visualize segmentation
-hvqgraph33(hvqdata, zcols = 6:33, pal = 6, asp=NA, numrec=T, bwtess=T, axes=T)
+hvqgraph33(hvqdata, zcols = 6:21, pal = 6, asp=NA, numrec=T, bwtess=T, axes=T)
 
 #run color
-hvqgraph33(hvqdata, zcols = 6:33, pal = 6, asp=NA, numrec=T, bwtess=F, axes=T,magnif=hvqdata$n)
+hvqgraph33(hvqdata, zcols = 6:21, pal = 6, asp=NA, numrec=T, bwtess=F, axes=T,magnif=hvqdata$n)
