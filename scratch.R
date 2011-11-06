@@ -21,6 +21,8 @@ example(plot3d)
 
 demo(persp)
 
+
+
 #generate torus data
 torus1<-function(R = 5, r = 2, xc = 0, yc = 0, zc = 0, n = 5000) {
 # R is the radius from the center of the torus to the center of the ring
@@ -89,6 +91,7 @@ qgraph(y,minimum=.3,directed=FALSE,details=TRUE,edge.labels=TRUE,edge.label.cex=
 qgraph(y,minimum=.3,directed=TRUE,details=TRUE,edge.labels=TRUE,edge.label.cex=.6)
 #title("EDA: Correlation Network",line=-1,cex.main=1)
 
+#clean
 qgraph(y,minimum=.2,mode='strength',cut=.5,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.6, asize=.1,graph='association')
 qgraph(y,minimum=.1,mode="strength",cut=.2,directed=TRUE,layout='spring',details=TRUE,edge.labels=TRUE,edge.label.cex=.6, asize=.1,graph='concentration')
 qgraph(y,minimum=.1,directed=TRUE,layout='spring',details=TRUE,edge.labels=FALSE,edge.label.cex=.6, asize=.1,graph='factorial')
@@ -155,4 +158,96 @@ finsingular <- lm(Salesper_store ~ .,data=raw)
 
 fact <- factanal(raw,15,rotation="varimax",nstart=20,lower=.01)
 qgraph.efa(fact,details=TRUE, minimum=.03,factorCors=TRUE,scores="regression",crossloadings=FALSE)
+
+
+
+#demo BMS
+
+options(prompt="R> ", digits=4)
+options(scipen=3)
+#import files and remove first column
+hotelRaw <-read.csv(file="hi.csv")
+hotelv1 <- hotelRaw[,-1]
+
+#some Transforms
+levels(hotelv1$LOC_DESC) <- c("AIRPORT","NA","HIGHWAY","NA","NA","RESORT","SMALL TOWN","SUBURBAN","URBAN")
+
+#
+#library(ggplot2)
+#qplot(Occupancy,AvgDailyRate, data=hotelv1)
+#qplot(Occupancy,AvgDailyRate, data=hotelv1, color=LOC_DESC)
+#qplot(Occupancy,AvgDailyRate,data=hotelv1,geom=c("point", "smooth"),method=loess, color=LOC_DESC)
+#
+#p <- ggplot(hotelv1,aes(AvgDailyRate,Occupancy))
+#p + geom_point(aes(size=RMS_AVAIL_QTY)) + geom_point(aes(color=LOC_DESC))
+#
+#heatdata <- data.matrix((hotelv1[,10:12]))
+#heatmap(heatdata, margins=c(10,5),scale="row", cex.lab=.5)
+
+library(lattice)
+xyplot(Occupancy ~ AvgDailyRate | LOC_DESC,data=hotelv1,cex=.4)
+
+densityplot(Occupancy ~ AvgDailyRate | LOC_DESC,data=hotelv1,cex=.5)
+dotplot(Occupancy ~ AvgDailyRate | LOC_DESC,data=hotelv1)
+bwplot(~Occupancy | LOC_DESC,data=hotelv1)
+
+#library(gtools)
+#xyplot(Occupancy ~ AvgDailyRate | quantcut(RMS_AVAIL_QTY),data=hotelv1,cex=.5,main="by Room Size",col='RED')
+
+xyplot(Occupancy ~ AvgDailyRate | LOC_DESC,data=hotelv1,cex=.5, panel=function(x,y) {
+	panel.grid(v=2)
+	panel.xyplot(x, y)
+	panel.loess(x, y, span = 1.0, degree = 1, family="symmetric")
+	panel.abline(lm(y~x)) 
+})
+
+#brushing and linking
+
+library(iplots)
+attach(hotelv1)
+ihist(Occupancy)
+ihist(AvgDailyRate)
+ihist(pclub_contribution)
+ihist(wb_nts_totsty)
+ibar(LOC_DESC)
+iplot(Occupancy,AvgDailyRate)
+
+
+
+##demo bny
+library(rgl)
+
+#generate torus data
+torus1<-function(R = 5, r = 2, xc = 0, yc = 0, zc = 0, n = 5000) {
+# R is the radius from the center of the torus to the center of the ring
+# r is the radius of the ring
+# xc, yc, and zc ar th x, y, and z center of the torus
+	u<-seq(0,2*pi,len=n)
+	v<-runif(n,min=0,max=2*pi)
+	x<-(R+r*cos(v))*cos(u)+xc
+	y<-(R+r*cos(v))*sin(u)+yc
+	z<-r*sin(v)+zc
+	data<-data.frame(x=x,y=y,z=z)
+}
+
+zdata3 <- torus1()
+
+#plot data
+plot3d(zdata3, col="BLUE", size=1,main="Torus")
+
+# prep data 
+library(reshape)
+scaleraw <- rescaler.data.frame(zdata3,type="sd")
+
+#run hvq
+hvq_k <- hvq(scaleraw,nclust=500,depth=1, quant.err = .5)
+hvqdata <- hvq_k$ztab
+
+#visualize segmentation
+hvqgraph33(hvqdata, zcols = 6:8, pal = 6, asp=NA, numrec=T, bwtess=T, axes=T)
+#run color
+hvqgraph33(hvqdata, zcols = 6:8, pal = 6, asp=NA, numrec=T, bwtess=F, axes=T,magnif=hvqdata$n)
+
+
+
 
