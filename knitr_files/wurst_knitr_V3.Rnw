@@ -1,0 +1,294 @@
+% ====================================================================
+%-- Project Name:   Knitr Application                                                         
+%-- Task :          Hotel Prediction 
+%-- version :       1.0
+%-- date :          11/23/2012
+%-- author :        Zubin    
+% ====================================================================
+
+\documentclass[letterpaper]{article}
+\usepackage{alltt}
+\usepackage{animate}
+\usepackage{Sweave}
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\usepackage{geometry}
+\usepackage{setspace}
+\geometry{verbose,tmargin=2.5cm,bmargin=2.5cm,lmargin=2.5cm,rmargin=2.5cm}
+
+\title{MARK 6750 Project}
+
+\author{Zubin Dowlaty}
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+\tableofcontents
+\pagebreak
+
+\section{Executive Summary}
+
+\begin{doublespace}
+
+A cross-sectional hotel operating performance data set was analyzed to determine the key determinants of average daily hotel rate.  The primary purpose for the hotel operator is to understand the significant drivers of the hotel's rate.  Utilizing this information, the operator can influence the rate in order to drive hotel profitability.  
+
+An econometric model was built, diagnostics were conducted and the appropriate transformations and variable selection operations were performed.  The resulting model performs well in validation tests and insights can be generated from it. 
+
+The primary drivers that the hotel operator can manipulate, learned from the model are as follows:
+
+\begin{itemize}
+  \item IDS Percent, or indirect bookers, if rate is to increase, the IDS contribution should be minimized.  Elasticity =  -.033.
+  \item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  In order to increase rate, system contribution should be let to increase. Elasticity = .247.
+  \item Government nights reduces rate, government contribution should be swapped out with higher rated business.  Elasticity = -.21.
+  \item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  The operator should try to increase the leisure business, as this would improve rate.  Elasticity = -.11.
+  \item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  The hotel operator should put in place programs to improve customer satisfaction.  Elasticity = -.33.
+\end{itemize}
+
+The results of the analysis identified statistically significant variables that can explain the variation in rate, utilizing the insights, the operator has information that will support the goal of rate improvement at the hotel level.  
+
+
+\end{doublespace}
+
+\pagebreak
+\section{Background and Problem Statement}
+
+\begin{doublespace}
+
+The data set selected is from Smith Travel Inc, this company is an aggregator of hotel performance metrics for the industry.   The data represents a sanitized data set representing a cross-section set of mid-scale (such as Holiday Inn) hotels summarized in a 12 month period.  
+
+The dependent variable in the study will be Average Daily Rate; we will try to explain the variation of a hotel's price for a room.  The predictors are a set of various operating metrics, characteristics of the hotel and competitive metrics.  Learning about the drivers of a hotel's price would enable the hotel manager to plan demand more effectively, leading to improved financial performance. 
+
+\end{doublespace}
+
+<<echo=FALSE,results='hide'>>=
+# Loading the libraries
+options(width=70)
+suppressPackageStartupMessages(library("ggplot2"))
+library("knitr",quietly = TRUE)
+library("ggplot2",quietly = TRUE)
+library("car", quietly = TRUE)
+library("qgraph",quietly= TRUE)
+library("lattice", quietly=TRUE)
+@
+
+\pagebreak
+\section{Data}
+
+\subsection{Data Set Summary Statistics}
+
+Reading in the raw data file and creating a training (80 percent) and a validation sample (20 percent).
+
+<<echo=TRUE,comment=NA,tidy=TRUE>>=
+set.seed(837)
+raw <- read.csv("/Users/Zubin/Data/rgi.csv")
+str(raw)
+#create a new variable - random uniform
+raw <- transform(raw,random=runif(nrow(raw)))
+#create training and validation data set
+rawTrain <- subset(raw,random<=.8)
+str(rawTrain)
+rawValid <- subset(raw,random>.8)
+str(rawValid)
+raw$random <- NULL
+rawValid$random <- NULL
+rawTrain$random <- NULL
+raw <-rawTrain
+row.names(raw) <- NULL
+@
+
+\subsection{Explanation of Fields}
+
+\begin{center}
+    \begin{tabular}{ | l | p{10cm} |}
+    \hline
+    \textbf{Variable name} & \textbf{Description} \\ \hline
+    AvgDailyRate & Dependent variable:  Average daily rate of the hotel \\ \hline
+    FAC\_{ID} & Hotel Identifier\\ \hline
+    RMS\_{AVAIL}\_{QTY} & Number of rooms available \\ \hline
+    LOC\_{DESC} & Location description of the hotel, e.g. airport \\ \hline
+    AGE & Age of property in years, ex:  4 = 4 years old \\ \hline
+    Occupancy & Occupancy:  Rooms Sold / Rooms Available \\ \hline
+    Ids\_{Booking} & Percent of nights booked from internet 3rd parties like Expedia, Hotels.com, etc. \\ \hline
+    Sys\_{3}\_{contribution} & Brand booking contribution, Web+CRO+GDS, the amount of bookings due to the brand \\ \hline
+    Loyalty contribution & Percent of nights from loyalty members \\ \hline
+    PercentGovtNights & Percent of nights from government rate codes (military for example) \\ \hline
+    PercentGroupNights & Percent of nights from group rate codes, conferences, meetings, etc. \\ \hline
+    PercentBusiness & Percent of nights classified as business customers \\ \hline
+    Hotelcount1mile & Number of hotels (competitors) in a 1 mile radius from the hotel in question \\ \hline
+    SAT & Satisfaction of guests (lower the better from 1-5, 1 = very satisfied) \\ \hline
+    \end{tabular}
+\end{center}
+
+\pagebreak
+
+We have one class variable, Location Type.  This variable represents six classes of different population density locations where hotels are built.  Airport is the reference class and dummy coding is utilized.
+
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=9,fig.height=4,fig.align='center'>>=
+plot(raw$LOC_DESC, main="Categorical Variable, Location Type Values")
+@
+The following plot is a trellis graph, it is used to identify distribution differences of Average Daily Rate by location type. Note that resort and urban locations have the most variability of the location types.  
+
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=9,fig.align='center'>>=
+# kernel density plots by factor level (alternate layout)
+densityplot(~DailyRate|LOC_DESC, main="Density Plot of Daily Rate by Location Type", xlab="Daily Rate",layout=c(1,6),data=raw)
+@
+
+\pagebreak
+\section{Analysis}
+
+\subsection{First Regression Run}
+<<echo=TRUE,comment=NA,tidy=TRUE>>=
+fit <- lm(DailyRate ~ RMS_AVAIL_QTY + LOC_DESC + age + Occupancy + ids_per + sys_3_cont + loyalty_contribution + PercentGovtNights + PercentGroupNights + PercentBusiness + hotelcount1mile + sat, data=raw)
+summary(fit)
+@
+
+Insights from the first regression run:
+\begin{itemize}
+  \item Rsquared is around .35.
+  \item Resort and Urban location types have higher room rates relative to airport.
+  \item Have a set of X variables that are not significant, we need to prune this model.
+  \item Satisfaction has a significant impact on Rates - remember 1 = Satisfied, so the negative is the correct sign
+\end{itemize}
+
+
+\subsection{Correlation Matrix}
+<<echo=TRUE,comment=NA,tidy=TRUE>>=
+options(width=80)
+options(digits=2)
+rawC <- subset(raw,select = c(-FAC_ID,-LOC_DESC))
+cor(rawC)
+@
+
+\subsubsection{Correlation Network}
+
+Viewing the correlation matrix with a correlation network, its a visualization that improves the interpretation of the correlation matrix. Key interpretation is:  Loyalty usage and percent business are correlated as to be expected, as loyalty members tend to be more business customers.  Rooms available tend to be higher where there exists more hotel density.  Rate is most correlated with occupancy and system contribution.
+
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=5,fig.align='center'>>=
+qgraph(cor(rawC),layout="spring",vsize=9,minimum = .2, details=TRUE,edge.labels=TRUE)
+# title("Correlation Graph Spring Layout")
+@
+\pagebreak
+
+\subsection{Outlier Analysis}
+Plots will follow, utilized for diagnosis of outliers in the data set.  
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=4,fig.align='center'>>=
+#par(mfrow=c(1,4))
+plot(fit, ask=FALSE,which = 1:6)
+out <- outlierTest(fit,cutoff = .10, digits=2) # Bonferonni p-value for most extreme obs
+outliers <- as.integer((names(out$rstudent)))
+out
+@
+Reviewing the Cooks Distance plot, Normal QQ, there definitely are outliers in the data set.  The most extreme observations based on alpha of .1, 5 outliers are pruned from the data set.  Inspection of these 5 outliers seems to indicate data errors.  
+
+\subsubsection{Outlier Removal}
+
+The outliers are removed and another training data set is created less the outliers.  The model is re-estimated.  
+
+
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=4,fig.align='center'>>=
+raw_removed <- raw[-(outliers),]
+str(raw_removed)
+fit <- lm(DailyRate ~ RMS_AVAIL_QTY + LOC_DESC + age + Occupancy + ids_per + sys_3_cont + loyalty_contribution + PercentGovtNights + PercentGroupNights + PercentBusiness + hotelcount1mile + sat, data=raw_removed)
+summary(fit)
+par(mfrow=c(2,3))
+plot(fit, which = 1:6,ask=FALSE)
+sresid <- studres(fit)
+par(mfrow=c(1,1))
+hist(sresid, main="Distribution of Studentized Residuals")
+@
+
+The diagnostic plots as well as the histogram of residuals looks fairly clean now, as well as Rsquared jumped to .42.    
+
+
+\subsection{Non Constant Variance}
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=5,fig.align='center'>>=
+# non-constant error variance test
+options(width=70)
+options(scipen=3)
+ncvTest(fit)
+# plot studentized residuals vs. fitted values
+fit.sresid <- rstandard(fit)
+plot(predict(fit,newdata=raw_removed), fit.sresid, ylab="Standardized Residuals", xlab="Fitted Daily Rate", main="Std Resid Plot")  
+abline(0,0)
+abline(2,0)
+abline(-2,0)
+@
+
+Viewing the plot of standardized residuals vs. fitted, we see an indication of increasing variance as the predicted daily rate increases.  Lets try to use the logarithm transformation to address the non constant variance.  
+
+\subsection{Log Transform given Non Constant Variance}
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=5,fig.align='center'>>=
+lnfit <- lm(log(DailyRate) ~ log(RMS_AVAIL_QTY) + LOC_DESC + log(age) + log(Occupancy) + log(ids_per) + log(sys_3_cont) + log(loyalty_contribution) + (PercentGovtNights) + (PercentGroupNights) + log(PercentBusiness) + (hotelcount1mile) + log(sat), data=raw_removed)
+summary(lnfit)
+options(scipen=3)
+ncvTest(lnfit)
+# plot studentized residuals vs. fitted values
+fit.sresid <- rstandard(lnfit)
+plot(exp(predict(lnfit,newdata=raw_removed)), fit.sresid, ylab="Standardized Residuals", xlab="Fitted Daily Rate", main="Std Resid Plot Log Transform")  
+abline(0,0)
+abline(2,0)
+abline(-2,0)
+@
+
+The residual plot looks much better post the logarithm transformation, so lets keep the model in logs. Note, two variables we did not apply the log transform due to these variables having zeros included in the observations.   
+
+\subsection{Multicollinearity}
+<<echo=TRUE,comment=NA,tidy=TRUE,>>=
+vif(fit) # variance inflation factors 
+@
+
+The VIF values are relatively low, indicating multi-collinearity is not a problem
+
+\subsection{Final Model based on Backwards AIC selection}
+<<echo=TRUE,comment=NA,tidy=TRUE,>>=
+steplmln <- step(lnfit,direction="backward", trace=0) 
+summary(steplmln)
+@
+
+
+
+\pagebreak
+\section{Summary and Conclusions}
+
+\subsection{Fitted vs Actual WITH log transform including MAPE calculation}
+<<echo=TRUE,comment=NA,tidy=TRUE,fig.width=7, fig.height=5,fig.align='center'>>=
+options(digits=3)
+pred <- predict(steplmln, newdata=raw_removed,interval="prediction")
+plot(raw_removed$DailyRate,exp(pred[,1]),main="Fitted Vs Actual Log Transformed Trained")
+abline(0,1,col="red")
+with (raw_removed,lines(lowess(raw_removed$DailyRate,exp(pred[,1])),col='blue'))
+MAPE <- mean(abs((raw_removed$DailyRate/exp(pred[,1])-1))*100)
+MAPE
+
+pred <- predict(steplmln, newdata=rawValid,interval="prediction")
+plot(rawValid$DailyRate,exp(pred[,1]),main="Fitted Vs Actual Log Transformed Validation")
+abline(0,1,col="red")
+with (rawValid,lines(lowess(rawValid$DailyRate,exp(pred[,1])),col='blue'))
+MAPE <- mean(abs((rawValid$DailyRate/exp(pred[,1])-1))*100)
+MAPE
+@
+
+\subsection{Model Summary}
+
+\begin{doublespace}
+
+Reviewing the fitted plots and MAPE of the training vs. validation performance of the model, indicates that the model is generalizing well to an unknown data set, as the validation performance is similar to the trained model mean absolute percent error. 
+
+The final model includes the following insights: 
+
+\begin{itemize}
+  \item Log transform applied to alleviate concerns with non constant variance.
+  \item Outliers were contained in the data set and removed.
+  \item Multi-collinearity was not a problem with these set of explanatory variables.  
+  \item The backward stepwise procedure eliminated:  Hotel Count, Age, Loyalty Contribution, Percent Group Nights, and Rooms Available (5 variables were dropped).
+  \item Occupancy has a positive relationship with Rate, higher occupancy (demand), higher rate, makes sense.
+  \item IDS Percent, or indirect bookers, like Hotels.com, the higher the percentage of bookings from this source, the lower the rate.  This makes sense, as these channels are discounted. 
+  \item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  One cause is the operators are skilled at selling the rooms at higher rates, upsell.  
+  \item Government nights reduces rate, this rate code is usually a heavily discounted rate.
+  \item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  I expected a higher rate here, not sure why this is negative, maybe due to negotiated rates.
+  \item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  
+\end{itemize}
+
+
+\end{doublespace}
+
+
+\end{document}
