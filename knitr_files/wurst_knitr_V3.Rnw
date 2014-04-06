@@ -9,7 +9,7 @@
 \documentclass[letterpaper]{article}
 \usepackage{alltt}
 \usepackage{animate}
-% \usepackage{Sweave}
+\usepackage{Sweave}
 \usepackage[pdftex,bookmarks=true]{hyperref}
 \usepackage{geometry}
 \usepackage{setspace}
