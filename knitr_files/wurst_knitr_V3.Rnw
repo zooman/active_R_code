@@ -3,13 +3,12 @@
 %-- Task :          Hotel Prediction 
 %-- version :       1.0
 %-- date :          11/23/2012
-%-- author :        Zubin Dowlaty    
+%-- author :        Zubin    
 % ====================================================================
 
 \documentclass[letterpaper]{article}
 \usepackage{alltt}
 \usepackage{animate}
-\usepackage{Sweave}
 \usepackage[pdftex,bookmarks=true]{hyperref}
 \usepackage{geometry}
 \usepackage{setspace}
@@ -19,8 +18,6 @@
 
 \author{Zubin Dowlaty}
 \begin{document}
-\SweaveOpts{concordance=TRUE}
-\maketitle
 \tableofcontents
 \pagebreak
 
@@ -35,11 +32,11 @@ An econometric model was built, diagnostics were conducted and the appropriate t
 The primary drivers that the hotel operator can manipulate, learned from the model are as follows:
 
 \begin{itemize}
-  \item IDS Percent, or indirect bookers, if rate is to increase, the IDS contribution should be minimized.  Elasticity =  -.033.
-  \item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  In order to increase rate, system contribution should be let to increase. Elasticity = .247.
-  \item Government nights reduces rate, government contribution should be swapped out with higher rated business.  Elasticity = -.21.
-  \item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  The operator should try to increase the leisure business, as this would improve rate.  Elasticity = -.11.
-  \item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  The hotel operator should put in place programs to improve customer satisfaction.  Elasticity = -.33.
+\item IDS Percent, or indirect bookers, if rate is to increase, the IDS contribution should be minimized.  Elasticity =  -.033.
+\item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  In order to increase rate, system contribution should be let to increase. Elasticity = .247.
+\item Government nights reduces rate, government contribution should be swapped out with higher rated business.  Elasticity = -.21.
+\item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  The operator should try to increase the leisure business, as this would improve rate.  Elasticity = -.11.
+\item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  The hotel operator should put in place programs to improve customer satisfaction.  Elasticity = -.33.
 \end{itemize}
 
 The results of the analysis identified statistically significant variables that can explain the variation in rate, utilizing the insights, the operator has information that will support the goal of rate improvement at the hotel level.  
@@ -61,7 +58,7 @@ The dependent variable in the study will be Average Daily Rate; we will try to e
 <<echo=FALSE,results='hide'>>=
 # Loading the libraries
 options(width=70)
-suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages("ggplot2")
 library("knitr",quietly = TRUE)
 library("ggplot2",quietly = TRUE)
 library("car", quietly = TRUE)
@@ -78,7 +75,6 @@ Reading in the raw data file and creating a training (80 percent) and a validati
 
 <<echo=TRUE,comment=NA,tidy=TRUE>>=
 set.seed(837)
-raw <- read.csv("/Users/Zubin/Data/rgi.csv")
 str(raw)
 #create a new variable - random uniform
 raw <- transform(raw,random=runif(nrow(raw)))
@@ -97,24 +93,24 @@ row.names(raw) <- NULL
 \subsection{Explanation of Fields}
 
 \begin{center}
-    \begin{tabular}{ | l | p{10cm} |}
-    \hline
-    \textbf{Variable name} & \textbf{Description} \\ \hline
-    AvgDailyRate & Dependent variable:  Average daily rate of the hotel \\ \hline
-    FAC\_{ID} & Hotel Identifier\\ \hline
-    RMS\_{AVAIL}\_{QTY} & Number of rooms available \\ \hline
-    LOC\_{DESC} & Location description of the hotel, e.g. airport \\ \hline
-    AGE & Age of property in years, ex:  4 = 4 years old \\ \hline
-    Occupancy & Occupancy:  Rooms Sold / Rooms Available \\ \hline
-    Ids\_{Booking} & Percent of nights booked from internet 3rd parties like Expedia, Hotels.com, etc. \\ \hline
-    Sys\_{3}\_{contribution} & Brand booking contribution, Web+CRO+GDS, the amount of bookings due to the brand \\ \hline
-    Loyalty contribution & Percent of nights from loyalty members \\ \hline
-    PercentGovtNights & Percent of nights from government rate codes (military for example) \\ \hline
-    PercentGroupNights & Percent of nights from group rate codes, conferences, meetings, etc. \\ \hline
-    PercentBusiness & Percent of nights classified as business customers \\ \hline
-    Hotelcount1mile & Number of hotels (competitors) in a 1 mile radius from the hotel in question \\ \hline
-    SAT & Satisfaction of guests (lower the better from 1-5, 1 = very satisfied) \\ \hline
-    \end{tabular}
+\begin{tabular}{ | l | p{10cm} |}
+\hline
+\textbf{Variable name} & \textbf{Description} \\ \hline
+AvgDailyRate & Dependent variable:  Average daily rate of the hotel \\ \hline
+FAC\_{ID} & Hotel Identifier\\ \hline
+RMS\_{AVAIL}\_{QTY} & Number of rooms available \\ \hline
+LOC\_{DESC} & Location description of the hotel, e.g. airport \\ \hline
+AGE & Age of property in years, ex:  4 = 4 years old \\ \hline
+Occupancy & Occupancy:  Rooms Sold / Rooms Available \\ \hline
+Ids\_{Booking} & Percent of nights booked from internet 3rd parties like Expedia, Hotels.com, etc. \\ \hline
+Sys\_{3}\_{contribution} & Brand booking contribution, Web+CRO+GDS, the amount of bookings due to the brand \\ \hline
+Loyalty contribution & Percent of nights from loyalty members \\ \hline
+PercentGovtNights & Percent of nights from government rate codes (military for example) \\ \hline
+PercentGroupNights & Percent of nights from group rate codes, conferences, meetings, etc. \\ \hline
+PercentBusiness & Percent of nights classified as business customers \\ \hline
+Hotelcount1mile & Number of hotels (competitors) in a 1 mile radius from the hotel in question \\ \hline
+SAT & Satisfaction of guests (lower the better from 1-5, 1 = very satisfied) \\ \hline
+\end{tabular}
 \end{center}
 
 \pagebreak
@@ -142,10 +138,10 @@ summary(fit)
 
 Insights from the first regression run:
 \begin{itemize}
-  \item Rsquared is around .35.
-  \item Resort and Urban location types have higher room rates relative to airport.
-  \item Have a set of X variables that are not significant, we need to prune this model.
-  \item Satisfaction has a significant impact on Rates - remember 1 = Satisfied, so the negative is the correct sign
+\item Rsquared is around .35.
+\item Resort and Urban location types have higher room rates relative to airport.
+\item Have a set of X variables that are not significant, we need to prune this model.
+\item Satisfaction has a significant impact on Rates - remember 1 = Satisfied, so the negative is the correct sign
 \end{itemize}
 
 
@@ -275,16 +271,16 @@ Reviewing the fitted plots and MAPE of the training vs. validation performance o
 The final model includes the following insights: 
 
 \begin{itemize}
-  \item Log transform applied to alleviate concerns with non constant variance.
-  \item Outliers were contained in the data set and removed.
-  \item Multi-collinearity was not a problem with these set of explanatory variables.  
-  \item The backward stepwise procedure eliminated:  Hotel Count, Age, Loyalty Contribution, Percent Group Nights, and Rooms Available (5 variables were dropped).
-  \item Occupancy has a positive relationship with Rate, higher occupancy (demand), higher rate, makes sense.
-  \item IDS Percent, or indirect bookers, like Hotels.com, the higher the percentage of bookings from this source, the lower the rate.  This makes sense, as these channels are discounted. 
-  \item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  One cause is the operators are skilled at selling the rooms at higher rates, upsell.  
-  \item Government nights reduces rate, this rate code is usually a heavily discounted rate.
-  \item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  I expected a higher rate here, not sure why this is negative, maybe due to negotiated rates.
-  \item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  
+\item Log transform applied to alleviate concerns with non constant variance.
+\item Outliers were contained in the data set and removed.
+\item Multi-collinearity was not a problem with these set of explanatory variables.  
+\item The backward stepwise procedure eliminated:  Hotel Count, Age, Loyalty Contribution, Percent Group Nights, and Rooms Available (5 variables were dropped).
+\item Occupancy has a positive relationship with Rate, higher occupancy (demand), higher rate, makes sense.
+\item IDS Percent, or indirect bookers, like Hotels.com, the higher the percentage of bookings from this source, the lower the rate.  This makes sense, as these channels are discounted. 
+\item System contribution, positive to rate.  The bookings coming thru the brand channels, such as the call center, tend to have a higher rate.  One cause is the operators are skilled at selling the rooms at higher rates, upsell.  
+\item Government nights reduces rate, this rate code is usually a heavily discounted rate.
+\item Percent business lowers rate, higher proportion of customers on business, rate tends to fall.  I expected a higher rate here, not sure why this is negative, maybe due to negotiated rates.
+\item Satisfaction, large driver here, as the elasticity is high, scale is inverted, so better the satisfaction the lower the metric, we see increased rate.  
 \end{itemize}
 
 
