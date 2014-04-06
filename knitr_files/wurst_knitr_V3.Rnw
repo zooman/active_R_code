@@ -18,6 +18,7 @@
 
 \author{Zubin Dowlaty}
 \begin{document}
+\maketitle
 \tableofcontents
 \pagebreak
 
@@ -64,6 +65,7 @@ library("ggplot2",quietly = TRUE)
 library("car", quietly = TRUE)
 library("qgraph",quietly= TRUE)
 library("lattice", quietly=TRUE)
+library("MASS", quietly=TRUE)
 @
 
 \pagebreak
@@ -74,6 +76,7 @@ library("lattice", quietly=TRUE)
 Reading in the raw data file and creating a training (80 percent) and a validation sample (20 percent).
 
 <<echo=TRUE,comment=NA,tidy=TRUE>>=
+raw <- read.csv("/Users/Zubin/Data/rgi.csv")
 set.seed(837)
 str(raw)
 #create a new variable - random uniform
