@@ -3,7 +3,7 @@
 %-- Task :          Hotel Prediction 
 %-- version :       1.0
 %-- date :          11/23/2012
-%-- author :        Zubin    
+%-- author :        Zubin Dowlaty    
 % ====================================================================
 
 \documentclass[letterpaper]{article}
