@@ -21,6 +21,7 @@ p<-c(p,"leaps")
 p<-c(p,"gtools"); #used for hvqgraph
 p<-c(p,"seas"); #used for hvqgraph
 p<-c(p,"doBy")
+p<-c(p,"knitr")
 
 #database
 p<-c(p,"DBI")
@@ -74,7 +75,7 @@ p<-c(p,"xts")
 p<-c(p,"quantmod")
 p<-c(p,"dyn")
 p<-c(p,"dynlm")
-p<-c(p,"ttr")
+p<-c(p,"TTR")
 
 
 repositories<-c("http://cran.cnr.Berkeley.edu","http://streaming.stat.iastate.edu/CRAN/")
@@ -91,8 +92,8 @@ install_package<-function(pack,repositories)
 
 for(pack in p)
 {
-	#install_package(pack,repositories)
-	#print(pack)
+	install_package(pack,repositories)
+	print(pack)
 }
 
 

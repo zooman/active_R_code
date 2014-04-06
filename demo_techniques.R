@@ -11,9 +11,9 @@ library(Hmisc)
 
 ####ETL#########################################################################
 
-
+hotel_raw <- read.csv(file.path("/Users/Zubin/Documents/datasets", "hi.csv"))
 #import files and remove first column
-hotel_raw <-read.csv(file="hi.csv")
+#hotel_raw <-read.csv(file="hi.csv")
 hotelv1 <- hotel_raw[,-1]
 
 #run model to look for outliers
